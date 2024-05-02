@@ -1,0 +1,9 @@
+[submodule "libDaisy"]
+	path = libDaisy
+	url = https://github.com/electro-smith/libDaisy.git
+[submodule "DaisySP"]
+	path = DaisySP
+	url = https://github.com/electro-smith/DaisySP.git
+[submodule "RTNeural"]
+	path = RTNeural
+	url = https://github.com/jatinchowdhury18/RTNeural.git
