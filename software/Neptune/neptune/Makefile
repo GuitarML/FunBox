@@ -3,7 +3,7 @@ TARGET = neptune
 
 USE_DAISYSP_LGPL = 1
 
-# APP_TYPE = BOOT_SRAM
+APP_TYPE = BOOT_SRAM
 
 # Compiler options
 OPT = -O1
@@ -24,7 +24,7 @@ include $(SYSTEM_FILES_DIR)/Makefile
 
 
 # Include funbox.h
-C_INCLUDES += -I../../include -IEffect-Modules/CloudSeed \
+C_INCLUDES += -I../../../include -I../CloudSeed \
 
 LIBS += -lcloudseed
-LIBDIR += -L../CloudSeed/build
+LIBDIR += -L../CloudSeed/build 
