@@ -1,7 +1,7 @@
 #include "daisy_petal.h"
 #include "daisysp.h"
 #include "funbox.h"
-#include <RTNeural/RTNeural.h>
+#include <RTNeural/RTNeural.h>  // NOTE: Need to use older version of RTNeural, same as GuitarML/Seed
 #include "delayline_2tap.h"
 #include "ImpulseResponse/ImpulseResponse.h"
 
@@ -33,7 +33,7 @@ Led led1, led2;
 
 float           mix_effects;
 
-float toneValue;
+float vfilter;
 Tone tone;       // Low Pass
 ATone toneHP;    // High Pass
 Balance bal;     // Balance for volume correction in filtering
@@ -50,8 +50,8 @@ bool alternateMode;
 
 // Delay Max Definitions (Assumes 48kHz samplerate)
 #define MAX_DELAY static_cast<size_t>(48000.0f * 2.f)
-
-# Delay with dotted eighth and triplett options
+DelayLine2Tap<float, MAX_DELAY> DSY_SDRAM_BSS delayLine;
+// Delay with dotted eighth and triplett options
 struct delay
 {
     DelayLine2Tap<float, MAX_DELAY> *del;
@@ -68,7 +68,7 @@ struct delay
         fonepole(currentDelay, delayTarget, .0002f);
         del->SetDelay(currentDelay);
 
-        float del_read = del->Read();
+        float read = del->Read();
 
         float secondTap = 0.0;
         if (secondTapOn) {
@@ -196,35 +196,42 @@ void UpdateSwitches()
     // Detect any changes in switch positions
 
     // 3-way Switch 1
-    for(int i=0; i<2; i++)
+    bool changed1 = false;
+    for(int i=0; i<2; i++) {
         if (hw.switches[switch1[i]].Pressed() != pswitch1[i]) {
             pswitch1[i] = hw.switches[switch1[i]].Pressed();
-            updateSwitch1();
-            break;
+            changed1 = true;
         }
     }
+    if (changed1) 
+        updateSwitch1();
+    
 
 
     // 3-way Switch 2
-    for(int i=0; i<2; i++)
+    bool changed2 = false;
+    for(int i=0; i<2; i++) {
         if (hw.switches[switch2[i]].Pressed() != pswitch2[i]) {
             pswitch2[i] = hw.switches[switch2[i]].Pressed();
-            updateSwitch2();
-            break;
+            changed2 = true;
         }
     }
+    if (changed2) 
+        updateSwitch2();
 
     // 3-way Switch 3
-    for(int i=0; i<2; i++)
+    bool changed3 = false;
+    for(int i=0; i<2; i++) {
         if (hw.switches[switch3[i]].Pressed() != pswitch3[i]) {
             pswitch3[i] = hw.switches[switch3[i]].Pressed();
-            updateSwitch3();
-            break;
+            changed3 = true;
         }
     }
+    if (changed3) 
+        updateSwitch3();
 
     // Dip switches
-    for(int i=0; i<2; i++)
+    for(int i=0; i<2; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
             pdip[i] = hw.switches[dip[i]].Pressed();
             // Action for dipswitches handled in audio callback
@@ -254,8 +261,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float vmix = Mix.Process();
 
     float vReverbTime = reverbTime.Process();
-    float vdelayTime = delayTime_tremFreq.Process();
-    float vdelayFdbk = delayFdbk_tremDepth.Process();
+    float vdelayTime = delayTime.Process();
+    float vdelayFdbk = delayFdbk.Process();
 
     // Mix or tone control (Tone is alternate)
     if (alternateMode) {
@@ -268,7 +275,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             float filter_value = (vmix - 0.5) * 800.0f + 40.0f;
             toneHP.SetFreq(filter_value);
         }
-    else {
+        vfilter = vmix;
+    } else {
 
         // Calculate mix parameters
         //    A cheap mostly energy constant crossfade from SignalSmith Blog
@@ -317,8 +325,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         delay1.delayTarget = 48000 + (vdelayTime - 0.75) * 192000; // 1 second to 2 second range
     }
     delay1.feedback = vdelayFdbk;
-    
-    } 
+
 
     // Loop through the current audio block and process all effects ////////
     // Order of effects is:
@@ -350,7 +357,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             float filter_in;
             float filter_out;
             float balanced_out;
-       
+            
             if (vfilter <= 0.5) {
                 filter_out = tone.Process(filter_in);
                 balanced_out = bal.Process(filter_out, filter_in);
@@ -374,7 +381,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             delay_out = delay1.Process(impulse_out);  
 
             // Process Reverb //
-            float final_effects = 0.0;
             //sendl = (ampOut + delay_out) * 0.5;  // adding in pre-effects signal to go to reverb, volume reduction on effects input for better balance
             sendl = impulse_out;  // parallel delay and reverb for now
             sendr = sendl;
@@ -383,23 +389,27 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             // Final mix
             float final_effect_left;
             float final_effect_right;
-            if (dip[0]) // If MISO is turned on, do stereo reverb, otherwise do mono and copy left to right
+            if (dip[0]) { // If MISO is turned on, do stereo reverb, otherwise do mono and copy left to right
                 final_effect_left = wetl + delay_out; 
                 final_effect_right = wetr + delay_out; 
 
-                out[0][i] = impulse_out * dryMix + final_effect_left * wetMix; // Mix amp out with delay/reverb;
-                out[1][i] = impulse_out * dryMix + final_effect_right * wetMix; // Mix amp out with delay/reverb;
+                out[0][i] = (impulse_out * dryMix + final_effect_left * wetMix) * vlevel; // Mix amp out with delay/reverb;
+                out[1][i] = (impulse_out * dryMix + final_effect_right * wetMix) * vlevel; // Mix amp out with delay/reverb;
 
-            else {
+            } else {
                 final_effect_left = (wetl + wetr) / 2 + delay_out; 
-                out[0][i] = out[1][i] = impulse_out * dryMix + final_effect_left * wetMix; // Mix amp out with delay/reverb;
+                out[0][i] = out[1][i] = (impulse_out * dryMix + final_effect_left * wetMix) * vlevel; // Mix amp out with delay/reverb;
                 
             }
-            
         }
     }
-
 }
+
+    
+            
+
+
+
 
 
 int main(void)
@@ -444,14 +454,12 @@ int main(void)
 
     // Initialize the correct model
     modelIndex = 0;
-    changeModel();
     nnLevelAdjust = 1.0;
 
     indexMod = 0;
 
     // Initialize & set params for mixers 
     mix_effects = 0.5;
-    effects_only_mode = false;
 
 
     verb.SetFeedback(0.0);
@@ -460,7 +468,7 @@ int main(void)
     tone.Init(samplerate);
     toneHP.Init(samplerate);
     bal.Init(samplerate);
-    toneValue = 0.5;
+    vfilter = 0.5;
 
 
     delayLine.Init();
