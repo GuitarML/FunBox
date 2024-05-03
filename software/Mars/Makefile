@@ -1,5 +1,5 @@
 # Project Name
-TARGET = neptune
+TARGET = mars
 
 USE_DAISYSP_LGPL = 1
 
@@ -11,12 +11,11 @@ OPT = -O1
 
 
 # Sources
-CPP_SOURCES = neptune.cpp
+CPP_SOURCES = mars.cpp ImpulseResponse/ImpulseResponse.cpp ImpulseResponse/dsp.cpp
 
 # Library Locations
-LIBDAISY_DIR = ../../../libDaisy
-DAISYSP_DIR = ../../../DaisySP
-CLOUDSEED_DIR = ../CloudSeed
+LIBDAISY_DIR = ../../libDaisy
+DAISYSP_DIR = ../../DaisySP
 
 # Core location, and generic Makefile.
 SYSTEM_FILES_DIR = $(LIBDAISY_DIR)/core
@@ -24,7 +23,5 @@ include $(SYSTEM_FILES_DIR)/Makefile
 
 
 # Include funbox.h
-C_INCLUDES += -I../../include -IEffect-Modules/CloudSeed \
-
-LIBS += -lcloudseed
-LIBDIR += -L../CloudSeed/build
+C_INCLUDES += -I../../include -I../../RTNeural -I../../eigen
+CPPFLAGS += -DRTNEURAL_DEFAULT_ALIGNMENT=8 -DRTNEURAL_NO_DEBUG=1
