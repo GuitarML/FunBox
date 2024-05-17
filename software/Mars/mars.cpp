@@ -432,8 +432,8 @@ int main(void)
     switch2[1]= Funbox::SWITCH_2_RIGHT;
     switch3[0]= Funbox::SWITCH_3_LEFT;
     switch3[1]= Funbox::SWITCH_3_RIGHT;
-    dip[6]= Funbox::SWITCH_DIP_1;
-    dip[7]= Funbox::SWITCH_DIP_2;
+    dip[0]= Funbox::SWITCH_DIP_1;
+    dip[1]= Funbox::SWITCH_DIP_2;
 
     pswitch1[0]= false;
     pswitch1[1]= false;
