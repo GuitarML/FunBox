@@ -42,11 +42,6 @@ Balance bal;     // Balance for volume correction in filtering
 ImpulseResponse mIR;
 int   m_currentIRindex;
 
-// Reverb
-ReverbSc        verb;
-
-// Alternate functions
-bool alternateMode;
 
 // Delay Max Definitions (Assumes 48kHz samplerate)
 #define MAX_DELAY static_cast<size_t>(48000.0f * 2.f)
@@ -110,12 +105,11 @@ void updateSwitch1()
     unsigned int modelIndex = 0;
 
     if (pswitch1[0] == true) {
-        modelIndex = 0 + indexMod;
-        nnLevelAdjust = 1.0;
-    } else if (pswitch1[1] == true) {
-        modelIndex = 2;
-    } else {
         modelIndex = 1;
+    } else if (pswitch1[1] == true) {
+        modelIndex = 3;
+    } else {
+        modelIndex = 2;
     }
 
     auto& gru = (model).template get<0>();
@@ -169,20 +163,17 @@ void UpdateButtons()
     // Can only disable/enable amp when not in bypass mode
     if(hw.switches[Funbox::FOOTSWITCH_1].FallingEdge())
     {
-        if (alternateMode) {
-            alternateMode = false;
-        } else {
-            bypass = !bypass;
-            led1.Set(bypass ? 0.0f : 1.0f);
-        }
+
+        bypass = !bypass;
+        led1.Set(bypass ? 0.0f : 1.0f);
     }
 
 
     // Toggle Alternate mode by holding down the left footswitch, if not already in alternate mode and not in bypass
-    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && !alternateMode && !bypass) {
-        alternateMode = true;
-        led1.Set(0.5f);  // Dim LED in alternate mode
-    }
+    //if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && !alternateMode && !bypass) {
+    //    alternateMode = true;
+    //    led1.Set(0.5f);  // Dim LED in alternate mode
+    //}
 
 
     led1.Update();
@@ -252,7 +243,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateSwitches();
 
     float input_arr[1] = { 0.0 };    // Neural Net Input
-    float sendl, sendr, wetl, wetr;  // Reverb Inputs/Outputs
+
     float delay_out;
 
     // Get current knob parameters ////////////////////
@@ -260,55 +251,35 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float vlevel = Level.Process(); 
     float vmix = Mix.Process();
 
-    float vReverbTime = reverbTime.Process();
+    float vfilter = reverbTime.Process();
     float vdelayTime = delayTime.Process();
     float vdelayFdbk = delayFdbk.Process();
 
     // Mix or tone control (Tone is alternate)
-    if (alternateMode) {
+
 
         // Set Filter Controls
-        if (vmix <= 0.5) {
-            float filter_value = (vmix * 39800.0f) + 100.0f;
-            tone.SetFreq(filter_value);
-        } else {
-            float filter_value = (vmix - 0.5) * 800.0f + 40.0f;
-            toneHP.SetFreq(filter_value);
-        }
-        vfilter = vmix;
+    if (vfilter <= 0.5) {
+        float filter_value = (vfilter * 39800.0f) + 100.0f;
+        tone.SetFreq(filter_value);
     } else {
+        float filter_value = (vfilter - 0.5) * 800.0f + 40.0f;
+        toneHP.SetFreq(filter_value);
+    }
+
 
         // Calculate mix parameters
         //    A cheap mostly energy constant crossfade from SignalSmith Blog
         //    https://signalsmith-audio.co.uk/writing/2021/cheap-energy-crossfade/
-        float x2 = 1.0 - vmix;
-        float A = vmix*x2;
-        float B = A * (1.0 + 1.4186 * A);
-        float C = B + vmix;
-        float D = B + x2;
+    float x2 = 1.0 - vmix;
+    float A = vmix*x2;
+    float B = A * (1.0 + 1.4186 * A);
+    float C = B + vmix;
+    float D = B + x2;
 
-        wetMix = C * C;
-        dryMix = D * D;
-    }
+    wetMix = C * C;
+    dryMix = D * D;
 
-
-
-    // REVERB //
-    //  Reverb time or damping (alternate) calculations
-    if (alternateMode) {
-        float invertedFreq = 1.0 - vReverbTime; // Invert the damping param so that knob left is less dampening, knob right is more dampening
-        invertedFreq = invertedFreq * invertedFreq; // also square it for exponential taper (more control over lower frequencies)
-        verb.SetLpFreq(600.0 + invertedFreq * (16000.0 - 600.0));
-
-    } else {
-        if (vReverbTime < 0.01) { // if knob < 1%, set reverb to 0
-            verb.SetFeedback(0.0);
-        } else if (vReverbTime >= 0.01 && vReverbTime <= 0.1) {
-            verb.SetFeedback(vReverbTime * 6.4 ); // Reverb time range 0.0 to 0.6 for 1% to 10% knob turn (smooth ramping to useful reverb time values, i.e. 0.6 to 1)
-        } else {
-            verb.SetFeedback(vReverbTime * 0.4 + 0.6); // Reverb time range 0.6 to 1.0
-        } 
-    }
 
     // DELAY //
 
@@ -327,10 +298,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     delay1.feedback = vdelayFdbk;
 
 
-    // Loop through the current audio block and process all effects ////////
     // Order of effects is:
     //           Gain -> Neural Model -> Tone -> IR -> Delay ->
-    //           Reverb -> Effects Mixer
     //
 
     for(size_t i = 0; i < size; i++)
@@ -340,9 +309,14 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         if(bypass)
         {
             // Could do a trails mode here
+            if (pdip[0]) {   // Stereo bypass
+                out[0][i] = in[0][i];  
+                out[1][i] = in[1][i]; 
+            } else {
+                out[0][i] = in[0][i];  
+                out[1][i] = in[0][i]; 
+            }
 
-            out[0][i] = in[0][i];  
-            out[1][i] = in[1][i]; 
         }
         else
         {   
@@ -353,8 +327,9 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             ampOut = model.forward (input_arr) + input_arr[0];  
             ampOut *= nnLevelAdjust;
 
+
             // Process Tone
-            float filter_in;
+            float filter_in =  ampOut;
             float filter_out;
             float balanced_out;
             
@@ -370,6 +345,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
             // IMPULSE RESPONSE //
             float impulse_out = 0.0;
+            
             if (pdip[1]) // If IR is enabled by dip switch
             {
                 impulse_out = mIR.Process(balanced_out) * 0.2;  // 0.2 is level adjust for loud output
@@ -379,28 +355,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             
             // Process Delay
             delay_out = delay1.Process(impulse_out);  
+            float output = (impulse_out * dryMix + delay_out * wetMix) * vlevel;
+            out[0][i] = output; // Mix amp out with delay/reverb;
+            out[1][i] = output; // Mix amp out with delay/reverb;
 
-            // Process Reverb //
-            //sendl = (ampOut + delay_out) * 0.5;  // adding in pre-effects signal to go to reverb, volume reduction on effects input for better balance
-            sendl = impulse_out;  // parallel delay and reverb for now
-            sendr = sendl;
-            verb.Process(sendl, sendr, &wetl, &wetr);
-
-            // Final mix
-            float final_effect_left;
-            float final_effect_right;
-            if (dip[0]) { // If MISO is turned on, do stereo reverb, otherwise do mono and copy left to right
-                final_effect_left = wetl + delay_out; 
-                final_effect_right = wetr + delay_out; 
-
-                out[0][i] = (impulse_out * dryMix + final_effect_left * wetMix) * vlevel; // Mix amp out with delay/reverb;
-                out[1][i] = (impulse_out * dryMix + final_effect_right * wetMix) * vlevel; // Mix amp out with delay/reverb;
-
-            } else {
-                final_effect_left = (wetl + wetr) / 2 + delay_out; 
-                out[0][i] = out[1][i] = (impulse_out * dryMix + final_effect_left * wetMix) * vlevel; // Mix amp out with delay/reverb;
-                
-            }
         }
     }
 }
@@ -419,12 +377,12 @@ int main(void)
     hw.Init();
     samplerate = hw.AudioSampleRate();
 
-    verb.Init(samplerate);
+    //verb.Init(samplerate);
 
     setupWeights();
     hw.SetAudioBlockSize(48); 
 
-    alternateMode = false;
+    updateSwitch2();
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;
@@ -462,8 +420,8 @@ int main(void)
     mix_effects = 0.5;
 
 
-    verb.SetFeedback(0.0);
-    verb.SetLpFreq(9000.0);
+    //verb.SetFeedback(0.0);
+    //verb.SetLpFreq(9000.0);
 
     tone.Init(samplerate);
     toneHP.Init(samplerate);
