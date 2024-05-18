@@ -144,16 +144,14 @@ void changeMode()
     // For the different modes, write a preset in the CloudSeed code, and switch presets here
     reverb->ClearBuffers();
 
-    if (switch1[0] == true) {                            // Hall
-        //reverb->initHall();
+    if (switch1[0] == true) {  
         reverb->initFactoryChorus();
 
-    } else if (switch1[1] == true) {                            // Cloud
-        //reverb->initCloud();
+    } else if (switch1[1] == true) {                       
+
         reverb->initFactoryMediumSpace();
 
-    } else {                            // Spring
-        //reverb->initSpring();
+    } else {                    
         reverb->initFactoryRubiKaFields();
 
     } 
@@ -516,9 +514,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             delay_outL = ((delay1.Process(delay_inL) + delay2.Process(delay_inL)) * delayMix);
             delay_outR = ((delay3.Process(delay_inR) + delay4.Process(delay_inR)) * delayMix);
 
-            //delay_outL = delay_inL;
-    
-            //delay_outR = delay_inR;
 
             // Delay and Reverb Routing based on Switch3 Position
             //        Up=Delay + and into Reverb     Middle= Delay and Reverb in Parallel  Down= Delay into Reverb
@@ -534,11 +529,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
 
             reverb->Process(inL, inR, outL, outR, 1); // Try doing the 1 sample like in effects suite, then just have one sample loop
-            //outL[0] = inL[0];
-            //outR[0] = inR[0];
 
-            //float filter_in;
-            //float filter_out;
 
             float balanced_outL;
             float balanced_outR;
@@ -581,7 +572,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         for (size_t i = 0; i < size; i++)
         {
             // Stereo or MISO 
-            if (pdip) {  // Stereo
+            if (pdip[0]) {  // Stereo
                 inputL = in[0][i];
                 inputR = in[1][i];
             } else {     //MISO

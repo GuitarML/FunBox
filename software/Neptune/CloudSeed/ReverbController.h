@@ -54,7 +54,7 @@ namespace CloudSeed
 			//parameters from Chorus Delay in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.0;
-			parameters[(int)Parameter2::PreDelay] = 0.070000000298023224;
+			//parameters[(int)Parameter2::PreDelay] = 0.070000000298023224;
 			parameters[(int)Parameter2::HighPass] = 0.0;
 			parameters[(int)Parameter2::LowPass] = 0.29000008106231689;
 			parameters[(int)Parameter2::TapCount]= 0.36499997973442078;
@@ -88,10 +88,11 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DelaySeed] = 0.00033700000494718552;
 			parameters[(int)Parameter2::PostDiffusionSeed] = 0.00050099997315555811;
 			parameters[(int)Parameter2::CrossSeed] = 0.0;
-			parameters[(int)Parameter2::DryOut] = 0.94499987363815308;
+			parameters[(int)Parameter2::DryOut] = 0.0;
 			parameters[(int)Parameter2::PredelayOut] = 0.0;
 			parameters[(int)Parameter2::EarlyOut] = 0.77999997138977051;
-			parameters[(int)Parameter2::MainOut] = 0.74500006437301636;
+			//parameters[(int)Parameter2::MainOut] = 0.74500006437301636;
+			parameters[(int)Parameter2::MainOut] = 0.95;
 			parameters[(int)Parameter2::HiPassEnabled] = 0.0;
 			parameters[(int)Parameter2::LowPassEnabled] = 0.0;
 			parameters[(int)Parameter2::LowShelfEnabled] = 0.0;
@@ -113,7 +114,7 @@ namespace CloudSeed
 			//parameters from Dull Echos in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.0;
-			parameters[(int)Parameter2::PreDelay] = 0.070000000298023224;
+			//parameters[(int)Parameter2::PreDelay] = 0.070000000298023224;
 			parameters[(int)Parameter2::HighPass] = 0.0;
 			parameters[(int)Parameter2::LowPass] = 0.29000008106231689;
 			parameters[(int)Parameter2::TapCount] = 0.36499997973442078;
@@ -147,10 +148,11 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DelaySeed] = 0.0002730000123847276;
 			parameters[(int)Parameter2::PostDiffusionSeed] = 0.00050099997315555811;
 			parameters[(int)Parameter2::CrossSeed] = 0.5;
-			parameters[(int)Parameter2::DryOut] = 1.0;
+			parameters[(int)Parameter2::DryOut] = 0.0;
 			parameters[(int)Parameter2::PredelayOut] = 0.0;
 			parameters[(int)Parameter2::EarlyOut] = 0.77999997138977051;
-			parameters[(int)Parameter2::MainOut] = 0.74500006437301636;
+			//parameters[(int)Parameter2::MainOut] = 0.74500006437301636;
+			parameters[(int)Parameter2::MainOut] = 0.9;
 			parameters[(int)Parameter2::HiPassEnabled] = 0.0;
 			parameters[(int)Parameter2::LowPassEnabled] = 1.0;
 			parameters[(int)Parameter2::LowShelfEnabled] = 0.0;
@@ -172,7 +174,7 @@ namespace CloudSeed
 			//parameters from Hyperplane in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.1549999862909317;
-			parameters[(int)Parameter2::PreDelay] = 0.0;
+			//parameters[(int)Parameter2::PreDelay] = 0.0;
 			parameters[(int)Parameter2::HighPass] = 0.57999998331069946;
 			parameters[(int)Parameter2::LowPass] = 0.9100000262260437;
 			parameters[(int)Parameter2::TapCount] = 0.41499990224838257;
@@ -206,7 +208,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DelaySeed] = 0.00034699999378062785;
 			parameters[(int)Parameter2::PostDiffusionSeed] = 0.00037200000951997936;
 			parameters[(int)Parameter2::CrossSeed] = 0.800000011920929;
-			parameters[(int)Parameter2::DryOut] = 0.86500018835067749;
+			parameters[(int)Parameter2::DryOut] = 0.0;
 			parameters[(int)Parameter2::PredelayOut] = 0.0;
 			parameters[(int)Parameter2::EarlyOut] = 0.8200000524520874;
 			parameters[(int)Parameter2::MainOut] = 0.79500007629394531;
@@ -230,7 +232,7 @@ namespace CloudSeed
 			//parameters from Medium Space in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.0;
-			parameters[(int)Parameter2::PreDelay] = 0.0;
+			//parameters[(int)Parameter2::PreDelay] = 0.0;
 			parameters[(int)Parameter2::HighPass] = 0.0;
 			parameters[(int)Parameter2::LowPass] = 0.63999992609024048;
 			parameters[(int)Parameter2::TapCount] = 0.3;       // KAB Modified for daisy seed
@@ -264,10 +266,12 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DelaySeed] = 0.0001610000035725534;
 			parameters[(int)Parameter2::PostDiffusionSeed] = 0.00050099997315555811;
 			parameters[(int)Parameter2::CrossSeed] = 0.7850000262260437;
-			parameters[(int)Parameter2::DryOut] = 1.0;
+			parameters[(int)Parameter2::DryOut] = 0.0;
 			parameters[(int)Parameter2::PredelayOut] = 0.0;
-			parameters[(int)Parameter2::EarlyOut] = 0.699999988079071;
-			parameters[(int)Parameter2::MainOut] = 0.84499984979629517;
+			//parameters[(int)Parameter2::EarlyOut] = 0.699999988079071;
+			parameters[(int)Parameter2::EarlyOut] = 0.8;
+			//parameters[(int)Parameter2::MainOut] = 0.84499984979629517;
+			parameters[(int)Parameter2::MainOut] = 0.95;
 			parameters[(int)Parameter2::HiPassEnabled] = 0.0;
 			parameters[(int)Parameter2::LowPassEnabled] = 1.0;
 			parameters[(int)Parameter2::LowShelfEnabled] = 1.0;
@@ -288,7 +292,7 @@ namespace CloudSeed
 			//parameters from Noise In The Hallway in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.0;
-			parameters[(int)Parameter2::PreDelay] = 0.0;
+			//parameters[(int)Parameter2::PreDelay] = 0.0;
 			parameters[(int)Parameter2::HighPass] = 0.0;
 			parameters[(int)Parameter2::LowPass] = 0.60999995470047;
 			parameters[(int)Parameter2::TapCount] = .4;
@@ -346,7 +350,7 @@ namespace CloudSeed
 			//parameters from Rubi-Ka Fields in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.32499998807907104;
-			parameters[(int)Parameter2::PreDelay] = 0.0;
+			//parameters[(int)Parameter2::PreDelay] = 0.0;
 			parameters[(int)Parameter2::HighPass] = 0.0;
 			parameters[(int)Parameter2::LowPass] = 0.8899998664855957;
 			parameters[(int)Parameter2::TapCount] = 0.3;
@@ -380,10 +384,11 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DelaySeed] = 0.0001610000035725534;
 			parameters[(int)Parameter2::PostDiffusionSeed] = 0.00050099997315555811;
 			parameters[(int)Parameter2::CrossSeed] = 0.43000003695487976;
-			parameters[(int)Parameter2::DryOut] = 0.88499999046325684;
+			parameters[(int)Parameter2::DryOut] = 0.0;
 			parameters[(int)Parameter2::PredelayOut] = 0.0;
 			parameters[(int)Parameter2::EarlyOut] = 0.0;
-			parameters[(int)Parameter2::MainOut] = 0.90999990701675415;
+			//parameters[(int)Parameter2::MainOut] = 0.90999990701675415;
+			parameters[(int)Parameter2::MainOut] = 0.95;
 			parameters[(int)Parameter2::HiPassEnabled] = 0.0;
 			parameters[(int)Parameter2::LowPassEnabled] = 0.0;
 			parameters[(int)Parameter2::LowShelfEnabled] = 0.0;
@@ -405,7 +410,7 @@ namespace CloudSeed
 			//parameters from Small Room in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.0;
-			parameters[(int)Parameter2::PreDelay] = 0.0;
+			//parameters[(int)Parameter2::PreDelay] = 0.0;
 			parameters[(int)Parameter2::HighPass] = 0.0;
 			parameters[(int)Parameter2::LowPass] = 0.755000114440918;
 			parameters[(int)Parameter2::TapCount] = 0.41499990224838257;
@@ -439,7 +444,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DelaySeed] = 0.00033499998971819878;
 			parameters[(int)Parameter2::PostDiffusionSeed] = 0.00037200000951997936;
 			parameters[(int)Parameter2::CrossSeed] = 0.42500001192092896;
-			parameters[(int)Parameter2::DryOut] = 1.0;
+			parameters[(int)Parameter2::DryOut] = 0.0;
 			parameters[(int)Parameter2::PredelayOut] = 0.0;
 			parameters[(int)Parameter2::EarlyOut] = 0.8599998950958252;
 			parameters[(int)Parameter2::MainOut] = 0.90500003099441528;
@@ -462,7 +467,7 @@ namespace CloudSeed
 			//parameters from The 90s Are Back in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0;
-			parameters[(int)Parameter2::PreDelay] = 0;
+			//parameters[(int)Parameter2::PreDelay] = 0;
 			parameters[(int)Parameter2::HighPass] = 0;
 			parameters[(int)Parameter2::LowPass] = 0.6750001311302185;
 			parameters[(int)Parameter2::TapCount] = 0;
@@ -496,8 +501,8 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DelaySeed] = 0.0003370000049471855;
 			parameters[(int)Parameter2::PostDiffusionSeed] = 0.0005009999731555581;
 			parameters[(int)Parameter2::CrossSeed] = 0.7950000166893005;
-			parameters[(int)Parameter2::DryOut] = 0.9449997544288635;
-			parameters[(int)Parameter2::PredelayOut] = 0;
+			parameters[(int)Parameter2::DryOut] = 0.0;
+			//parameters[(int)Parameter2::PredelayOut] = 0;
 			parameters[(int)Parameter2::EarlyOut] = 0.7250000238418579;
 			parameters[(int)Parameter2::MainOut] = 0.6050001382827759;
 			parameters[(int)Parameter2::HiPassEnabled] = 0;
@@ -519,7 +524,7 @@ namespace CloudSeed
 			//parameters from Through The Looking Glass in
 			//https://github.com/ValdemarOrn/CloudSeed/tree/master/Factory%20Programs
 			parameters[(int)Parameter2::InputMix] = 0.0;
-			parameters[(int)Parameter2::PreDelay] = 0.0;
+			//parameters[(int)Parameter2::PreDelay] = 0.0;
 			parameters[(int)Parameter2::HighPass] = 0.0;
 			parameters[(int)Parameter2::LowPass] = 0.74000012874603271;
 			parameters[(int)Parameter2::TapCount] = 1.0;
