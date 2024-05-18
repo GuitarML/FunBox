@@ -18,7 +18,7 @@ using namespace funbox;  // This is important for mapping the correct controls t
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-Parameter Gain, Level, Mix, reverbTime, delayTime, delayFdbk;
+Parameter Gain, Level, Mix, filter, delayTime, delayFdbk;
 bool            bypass;
 int             modelInSize;
 unsigned int    modelIndex;
@@ -251,7 +251,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float vlevel = Level.Process(); 
     float vmix = Mix.Process();
 
-    float vfilter = reverbTime.Process();
+    float vfilter = filter.Process();
     float vdelayTime = delayTime.Process();
     float vdelayFdbk = delayFdbk.Process();
 
@@ -406,7 +406,7 @@ int main(void)
     Gain.Init(hw.knob[Funbox::KNOB_1], 0.1f, 2.5f, Parameter::LINEAR);
     Mix.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
     Level.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
-    reverbTime.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::LINEAR);
+    filter.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::CUBE);
     delayTime.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     delayFdbk.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
 
@@ -419,9 +419,6 @@ int main(void)
     // Initialize & set params for mixers 
     mix_effects = 0.5;
 
-
-    //verb.SetFeedback(0.0);
-    //verb.SetLpFreq(9000.0);
 
     tone.Init(samplerate);
     toneHP.Init(samplerate);
