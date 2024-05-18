@@ -65,7 +65,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.4285714328289032;
 			parameters[(int)Parameter2::DiffusionDelay] = 0.43500006198883057;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.725000262260437;
-			//parameters[(int)Parameter2::LineCount] = 1.0;                          // Modified to work with Terrarium switch implementation
+			//parameters[(int)Parameter2::LineCount] = 0.0;                          // Modified to work with Terrarium switch implementation
 			parameters[(int)Parameter2::LineDelay] = 0.68499988317489624;
 			parameters[(int)Parameter2::LineDecay] = 0.68000012636184692;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 1.0;
@@ -124,7 +124,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.4285714328289032;
 			parameters[(int)Parameter2::DiffusionDelay] = 0.43500006198883057;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.725000262260437;
-			//parameters[(int)Parameter2::LineCount] = 1.0;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.34500002861022949;
 			parameters[(int)Parameter2::LineDecay] = 0.41500008106231689;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 0.0;
@@ -183,7 +183,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.285714328289032;    //KAB modified for Daisy Seed,
 			parameters[(int)Parameter2::DiffusionDelay] = 0.27500024437904358;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.660000205039978;
-			//parameters[(int)Parameter2::LineCount] = 0.72727274894714355;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.22500017285346985;
 			parameters[(int)Parameter2::LineDecay] = 0.794999897480011;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 1.0;
@@ -241,7 +241,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.3;            // KAB Modified for daisy seed
 			parameters[(int)Parameter2::DiffusionDelay] = 0.5700000524520874;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.76000010967254639;
-			//parameters[(int)Parameter2::LineCount] = 0.18181818723678589;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.585000216960907;
 			parameters[(int)Parameter2::LineDecay] = 0.29499980807304382;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 1.0;
@@ -299,7 +299,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.28571429848670959;
 			parameters[(int)Parameter2::DiffusionDelay] = 0.35499998927116394;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.62500005960464478;
-			//parameters[(int)Parameter2::LineCount] = 0.63636362552642822;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.36000004410743713;
 			parameters[(int)Parameter2::LineDecay] = 0.51000005006790161;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 1.0;
@@ -357,7 +357,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.3;
 			parameters[(int)Parameter2::DiffusionDelay] = 0.5700000524520874;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.76000010967254639;
-			//parameters[(int)Parameter2::LineCount] = 0.27272728085517883;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.68500018119812012;
 			parameters[(int)Parameter2::LineDecay] = 0.82999974489212036;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = .5;
@@ -416,7 +416,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.71428573131561279;
 			parameters[(int)Parameter2::DiffusionDelay] = 0.335000216960907;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.660000205039978;
-			//parameters[(int)Parameter2::LineCount] = 0.18181818723678589;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.51000016927719116;
 			parameters[(int)Parameter2::LineDecay] = 0.29999998211860657;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 1.0;
@@ -473,7 +473,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 0.5714285969734192;
 			parameters[(int)Parameter2::DiffusionDelay] = 0.7100000381469727;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.5450003147125244;
-			//parameters[(int)Parameter2::LineCount] = 0.7272727489471436;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.6849998831748962;
 			parameters[(int)Parameter2::LineDecay] = 0.6300000548362732;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 0;
@@ -530,7 +530,7 @@ namespace CloudSeed
 			parameters[(int)Parameter2::DiffusionStages] = 1.0;
 			parameters[(int)Parameter2::DiffusionDelay] = 0.65999996662139893;
 			parameters[(int)Parameter2::DiffusionFeedback] = 0.76000010967254639;
-			//parameters[(int)Parameter2::LineCount] = 1.0;
+			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.9100002646446228;
 			parameters[(int)Parameter2::LineDecay] = 0.80999958515167236;
 			parameters[(int)Parameter2::LateDiffusionEnabled] = 1.0;

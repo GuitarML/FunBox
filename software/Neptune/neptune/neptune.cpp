@@ -157,7 +157,7 @@ void changeMode()
         reverb->initFactoryRubiKaFields();
 
     } 
-
+    reverb->SetParameter(::Parameter2::LineCount, 2);
     force_reset = true; // This allows the knob controlled params to be reset without moving the knobs, when a new mode is selected
 }
 
@@ -497,7 +497,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         for (size_t i = 0; i < size; i++)
         {
             // Stereo or MISO 
-            if (pdip) {  // Stereo
+            if (pdip[0]) {  // Stereo
                 inputL = in[0][i];
                 inputR = in[1][i];
             } else {     //MISO
@@ -516,6 +516,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             delay_outL = ((delay1.Process(delay_inL) + delay2.Process(delay_inL)) * delayMix);
             delay_outR = ((delay3.Process(delay_inR) + delay4.Process(delay_inR)) * delayMix);
 
+            //delay_outL = delay_inL;
+    
+            //delay_outR = delay_inR;
+
             // Delay and Reverb Routing based on Switch3 Position
             //        Up=Delay + and into Reverb     Middle= Delay and Reverb in Parallel  Down= Delay into Reverb
 
@@ -530,7 +534,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
 
             reverb->Process(inL, inR, outL, outR, 1); // Try doing the 1 sample like in effects suite, then just have one sample loop
-
+            //outL[0] = inL[0];
+            //outR[0] = inR[0];
 
             //float filter_in;
             //float filter_out;
@@ -557,8 +562,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             }
             */
 
-            out[0][i] = inputL * dryMix + balanced_outL;
-            out[1][i] = inputR * dryMix + balanced_outR;
+            out[0][i] = inputL * dryMix + balanced_outL * wetMix;
+            out[1][i] = inputR * dryMix + balanced_outR * wetMix;
 
             if (ramp < 1.0) {
                 ramp += 0.001;
