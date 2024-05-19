@@ -348,14 +348,14 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             
             if (pdip[1]) // If IR is enabled by dip switch
             {
-                impulse_out = mIR.Process(balanced_out) * 0.2;  // 0.2 is level adjust for loud output
+                impulse_out = mIR.Process(balanced_out) * 0.2;  
             } else {
-                impulse_out = balanced_out;
+                impulse_out = balanced_out; 
             }
             
             // Process Delay
             delay_out = delay1.Process(impulse_out);  
-            float output = (impulse_out * dryMix + delay_out * wetMix) * vlevel;
+            float output = (impulse_out * dryMix + delay_out * wetMix) * vlevel *0.4; // 0.2 for level adjust
             out[0][i] = output; // Mix amp out with delay/reverb;
             out[1][i] = output; // Mix amp out with delay/reverb;
 
@@ -405,7 +405,7 @@ int main(void)
 
     Gain.Init(hw.knob[Funbox::KNOB_1], 0.1f, 2.5f, Parameter::LINEAR);
     Mix.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
-    Level.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
+    Level.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); // lower range for quieter level
     filter.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::CUBE);
     delayTime.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     delayFdbk.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
