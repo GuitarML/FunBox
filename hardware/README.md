@@ -1,1 +1,36 @@
-# Pedal Hardware
+# Hardware
+
+This directory contains the KiCad files for manufacturing the Funbox PCB. Includes schematic, pcb, and generated BOM.
+Funbox uses a 125B sized enclosure.
+
+## Funbox v1
+
+Funbox v1 uses a 125B enclosure with the following features:
+- Stereo In/Out
+- 9v power
+- 6 potentiometer knobs 
+- 3 3-way switches On-Off-On
+- 2 SPST momentary footswitches
+- 2 LEDs
+- 2 Dipswitches
+
+[Tayda Drill Template]()
+
+VERIFIED WORKING - using OshPark standard board manufacturing
+
+## Funbox v2
+
+Funbox v2 adds MIDI In/Out via two 1/8" TRS jacks and up to a 4 dip switch array, instead of 2.
+
+[Tayda Drill Template]()
+
+CURRENTLY UNTESTED 
+
+## Funbox v3
+
+Funbox v3 replaces the MIDI out jack from version 2 with an Expression Input jack. 
+Note: Since most Expresion pedals use 1/4" TRS cables, an adapter is required (Female 1/4" to Male 1/8" stereo adapter, or 1/4" to 1/8" TRS cable.)
+
+[Tayda Drill Template]() (Same as version 2)
+
+CURRENTLY UNTESTED 
