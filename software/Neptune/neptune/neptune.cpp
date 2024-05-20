@@ -4,6 +4,7 @@
 #include "daisysp.h"
 #include "funbox.h"
 #include "delayline_reverse.h"
+#include "delayline_oct.h"
 
 #include "../CloudSeed/Default.h"
 #include "../CloudSeed/ReverbController.h"
@@ -77,56 +78,73 @@ void* custom_pool_allocate(size_t size)
 
 // Delay
 #define MAX_DELAY static_cast<size_t>(48000 * 4.0f) // 4 second max delay
+#define MAX_DELAY_REV static_cast<size_t>(48000 * 8.0f) // 4 second max delay (double for reverse)
 
-DelayLineReverse<float, MAX_DELAY> DSY_SDRAM_BSS delayLineRev;
-DelayLineReverse<float, MAX_DELAY> DSY_SDRAM_BSS delayLine2;
-DelayLineReverse<float, MAX_DELAY> DSY_SDRAM_BSS delayLineRev2;
-DelayLineReverse<float, MAX_DELAY> DSY_SDRAM_BSS delayLine4;
+DelayLineReverse<float, MAX_DELAY_REV> DSY_SDRAM_BSS delayLineRevLeft;
+DelayLineOct<float, MAX_DELAY> DSY_SDRAM_BSS delayLineOctLeft;
+DelayLineReverse<float, MAX_DELAY_REV> DSY_SDRAM_BSS delayLineRevRight;
+DelayLineOct<float, MAX_DELAY> DSY_SDRAM_BSS delayLineOctRight;
+
 
 struct delay
 {
-    //DelayLine<float, MAX_DELAY> *del;
-    DelayLineReverse<float, MAX_DELAY> *del;
+    DelayLineOct<float, MAX_DELAY> *del;
+    DelayLineReverse<float, MAX_DELAY_REV> *delreverse;
     float                        currentDelay;
     float                        delayTarget;
-    float                        feedback;
+    float                        feedback = 0.0;
     float                        active = false;
     bool                         reverseMode = false;
-    unsigned int                 speed = 1;
-
+    float                        level = 1.0;      // Level multiplier of output, added for stereo modulation
+    float                        level_reverse = 1.0;      // Level multiplier of output, added for stereo modulation
+    bool                         dual_delay = false;
+    bool                         secondTapOn = false;
+    
     float Process(float in)
     {
         //set delay times
         fonepole(currentDelay, delayTarget, .0002f);
-        del->SetDelay1(currentDelay);
-        del->SetSpeed(speed);
+        del->SetDelay(currentDelay);
+        delreverse->SetDelay1(currentDelay);
 
-        float read = del->ReadFwd();
-        if (speed == 2) {
-            read = toneOctLP.Process(read);  // LP filter on octave delay to tame harsh high pitch tones
+        float del_read = del->Read();
+
+        float read_reverse = delreverse->ReadRev(); // REVERSE
+
+        float read = toneOctLP.Process(del_read);  // LP filter, tames harsh high frequencies on octave, has fading effect for normal/reverse
+
+        float secondTap = 0.0;
+        if (secondTapOn) {
+            secondTap = del->ReadSecondTap();
         }
-
-        float readRev = del->ReadRev();
+        //float read2 = delreverse->ReadFwd();
         if (active) {
             del->Write((feedback * read) + in);
-            //delRev->Write((feedback * read) + in);
+            delreverse->Write((feedback * read) + in);  // Writing the read from fwd/oct delay line allows for combining oct and rev for reverse octave!
+            //delreverse->Write((feedback * read2) + in); 
         } else {
-            del->Write(feedback * read);
-            //delRev->Write(feedback * read);
+            del->Write(feedback * read); // if not active, don't write any new sound to buffer
+            delreverse->Write(feedback * read);
+            //delreverse->Write((feedback * read2));
         }
 
-        if (reverseMode)
-            return readRev;
-        else
-            return read;
+        if (dual_delay) {
+            return read_reverse * level_reverse * 0.5 + (read + secondTap) * level * 0.5; // Half the volume to keep total level consistent
+        } else if (reverseMode) {
+            return read_reverse * level_reverse;
+        } else {
+            return (read + secondTap) * level;
+        }
     }
 };
+
+
+
 // Left channel
-delay             delay1;
-delay             delay2;   // Two delay lines is too much for Daisy to keep up with when in reverse mode, try the simpler interpolation method in delayline code
-// Right channel
-delay             delay3;
-delay             delay4;
+delay             delayL;
+delay             delayR;  
+
+
 
 
 bool knobMoved(float old_value, float new_value)        //// UPDATE  //// UPDATE  //// UPDATE
@@ -163,44 +181,29 @@ void updateSwitch3()
 {
     // DELAY ///////////////////////
     if (pswitch3[0]) {                // If switch3 is up, Normal FWD mode
-        delay1.active = true;
-        delay2.active = false;
-        delay1.speed = 1;
-        delay2.speed = 1;
-        delay2.reverseMode = false;
-
-        delay3.active = true;
-        delay4.active = false;
-        delay3.speed = 1;
-        delay4.speed = 1;
-        delay4.reverseMode = false;
+        delayL.active = true;
+        delayR.active = true;
+        delayL.del->setOctave(false); 
+        delayR.del->setOctave(false);
+        delayL.reverseMode = false;
+        delayR.reverseMode = false;
 
 
     } else if (pswitch3[1]) {         // If switch3 is down, REV mode
-        delay1.active = false;
-        delay2.active = true;
-        delay1.speed = 1;
-        delay2.speed = 1;
-        delay2.reverseMode = true;
-
-        delay3.active = false;
-        delay4.active = true;
-        delay3.speed = 1;
-        delay4.speed = 1;
-        delay4.reverseMode = true;
+        delayL.active = true;
+        delayR.active = true;
+        delayL.del->setOctave(false); 
+        delayR.del->setOctave(false);
+        delayL.reverseMode = true;
+        delayR.reverseMode = true;
 
     } else {                           // If switch3 is middle, Octave mode
-        delay1.active = true;
-        delay2.active = false;
-        delay1.speed = 2;
-        delay2.speed = 2;
-        delay2.reverseMode = false;
-
-        delay3.active = true;
-        delay4.active = false;
-        delay3.speed = 2;
-        delay4.speed = 2;
-        delay4.reverseMode = false;
+        delayL.active = true;
+        delayR.active = true;
+        delayL.del->setOctave(true); 
+        delayR.del->setOctave(true);
+        delayL.reverseMode = false;
+        delayR.reverseMode = false;
     }
 }
 
@@ -379,39 +382,30 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     }
 
 
-    float fvdelayTime = 1.0 - vdelayTime; //Invert parameter for correct knob operation
+    //float fvdelayTime = 1.0 - vdelayTime; //Invert parameter for correct knob operation
 
     if (vdelayTime <= 0.01) {   // if knob < 1%, set delay to inactive
-        delay1.active = false;
-        delay2.active = false;
-        delay3.active = false;
-        delay4.active = false;
-    }
-
-
-    if (vdelayTime <= 0.5) {
-        delay1.delayTarget = 144000 + (fvdelayTime - 0.5) * 48000;   // should be a range 192000 -> 144000 samples as knob goes from 0 to midpoint
-        delay3.delayTarget = 144000 + (fvdelayTime - 0.5) * 48000;   // should be a range 192000 -> 144000 samples as knob goes from 0 to midpoint
+        delayL.active = false;
+        delayR.active = false;
 
     } else {
-        delay1.delayTarget = 2400 + fvdelayTime * 283200;  // should be range 144000 -> 2400 samples as knob goes from midpoint to max
-        delay3.delayTarget = 2400 + fvdelayTime * 283200;  // should be range 144000 -> 2400 samples as knob goes from midpoint to max
-
+        delayL.active = true;
+        delayR.active = true;
     }
 
-    delay2.delayTarget = 96000 - (delay1.delayTarget / 2.0);
-    delay4.delayTarget = 96000 - (delay1.delayTarget / 2.0);
+
+    delayL.delayTarget = 2400 + vdelayTime * 189600; 
+    delayR.delayTarget = 2400 + vdelayTime * 189600;   
+
 
     if (freeze) {
-        delay1.feedback = del_FDBK_Override;
-        delay2.feedback = del_FDBK_Override;
-        delay3.feedback = del_FDBK_Override;
-        delay4.feedback = del_FDBK_Override;
+        delayL.feedback = del_FDBK_Override;
+        delayR.feedback = del_FDBK_Override;
+
     } else {
-        delay1.feedback = vdelayFDBK;
-        delay2.feedback = vdelayFDBK;
-        delay3.feedback = vdelayFDBK;
-        delay4.feedback = vdelayFDBK;
+        delayL.feedback = vdelayFDBK;
+        delayR.feedback = vdelayFDBK;
+
     }
 
     if (release) {
@@ -511,8 +505,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 delay_inR = inputR;
             }
 
-            delay_outL = ((delay1.Process(delay_inL) + delay2.Process(delay_inL)) * delayMix);
-            delay_outR = ((delay3.Process(delay_inR) + delay4.Process(delay_inR)) * delayMix);
+            delay_outL = (delayL.Process(delay_inL)  * delayMix);
+            delay_outR = (delayR.Process(delay_inR) * delayMix);
 
 
             // Delay and Reverb Routing based on Switch3 Position
@@ -626,29 +620,23 @@ int main(void)
     pmodify = 0.0;
     pdelayTime = 0.0;
 
-    delayLineRev.Init();
-    delay1.del = &delayLineRev;
-    delay1.delayTarget = 2400; // in samples
-    delay1.feedback = 0.0;
-    delay1.active = true;     // Default to no delay
 
-    delayLine2.Init();
-    delay2.del = &delayLine2;
-    delay2.delayTarget = 2400; // in samples
-    delay2.feedback = 0.0;
-    delay2.active = false;     // Default to no delay
+    delayLineRevLeft.Init();
+    delayLineOctLeft.Init();
+    delayL.del = &delayLineOctLeft;
+    delayL.delreverse = &delayLineRevLeft;
+    delayL.delayTarget = 2400; // in samples
+    delayL.feedback = 0.0;
+    delayL.active = true;     // Default to no delay
 
-    delayLineRev2.Init();
-    delay3.del = &delayLineRev2;
-    delay3.delayTarget = 2400; // in samples
-    delay3.feedback = 0.0;
-    delay3.active = true;     // Default to no delay
+    delayLineRevRight.Init();
+    delayLineOctRight.Init();
+    delayR.del = &delayLineOctRight;
+    delayR.delreverse = &delayLineRevRight;
+    delayR.delayTarget = 2400; // in samples
+    delayR.feedback = 0.0;
+    delayR.active = true;     // Default to no delay
 
-    delayLine4.Init();
-    delay4.del = &delayLine4;
-    delay4.delayTarget = 2400; // in samples
-    delay4.feedback = 0.0;
-    delay4.active = false;     // Default to no delay
 
     //tone.Init(samplerate);
     //toneHP.Init(samplerate);

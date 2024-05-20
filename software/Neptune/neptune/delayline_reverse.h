@@ -21,13 +21,13 @@
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
 #pragma once
-#ifndef DSY_DELAY_REVERSE_H
-#define DSY_DELAY_REVERSE_H
+#ifndef DELAY_REVERSE_H
+#define DELAY_REVERSE_H
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-namespace daisysp
-{
+//namespace daisysp
+//{
 /** Reverse Delay line
 By: Adam Fulford
 */
@@ -102,8 +102,8 @@ class DelayLineReverse
         headDiff_        = (headDiff_ + 1 + delay1_) % delay1_;   
 
         //advance read ptrs in reverse direction
-        read_ptr1_ = (read_ptr1_ - 1 + max_size) % max_size;
-        read_ptr2_ = (read_ptr2_ - 1 + max_size) % max_size;
+        read_ptr1_ = (read_ptr1_ - 1  + max_size) % max_size;   // KAB TODO I think this is where I would multipy the speed for reverse octave --NOPE
+        read_ptr2_ = (read_ptr2_ - 1  + max_size) % max_size;   // KAB TODO I think this is where I would multipy the speed for reverse octave --NOPE high pitch error sounding noise
  
         if (headDiff_ > (delay1_ - fadetime - 1))  //start cross fade region
         {
@@ -168,12 +168,15 @@ class DelayLineReverse
         T a1 = line_[read_ptr1_];
         T a2 = line_[(read_ptr2_)];
 
+        //T a1 = line_[read_ptr1_];
+        //T a2 = line_[(read_ptr2_)];
+
         float read1 = a1;
         float read2 = a2;
 
         float scalar_1, scalar_2;
 
-        //hann          // KAB NOTE: Was using flattenned hann, chantged to hann for quicker processing
+        //hann                                                 // TODO Try this and see if it sounds different, this is less computationally expensive - sounds fine to me!
         scalar_1 = sinf(fadepos_ * ((float)M_PI * 0.5f));
         scalar_2 = sinf((1.0f - fadepos_) * ((float)M_PI * 0.5f));
 
@@ -216,5 +219,5 @@ class DelayLineReverse
     unsigned int indexMultiplier_;
     
 };
-} // namespace daisysp
+//} // namespace daisysp
 #endif
