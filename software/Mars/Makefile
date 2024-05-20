@@ -23,5 +23,5 @@ include $(SYSTEM_FILES_DIR)/Makefile
 
 
 # Include funbox.h
-C_INCLUDES += -I../../include -I../../RTNeural -I../../eigen
+C_INCLUDES += -I../../include -I../../RTNeural -I../../RTNeural/modules/Eigen
 CPPFLAGS += -DRTNEURAL_DEFAULT_ALIGNMENT=8 -DRTNEURAL_NO_DEBUG=1
