@@ -5,6 +5,8 @@ This repo includes the KiCad design files for the PCB, as well as software packa
 Funbox as a fully featured guitar pedal. You can build your own and use the effects included here,
 or use it as a starting place to design your own awesome pedal!
 
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v1_front.jpg)
+
 The resources included here allow you to build a guitar pedal with comparable features to commercial brands. 
 Soldering is required to build the hardware. Tayda drill templates are linked along with an Adobe Illustrator 
 template for UV printing the enclosure, if desired. 
@@ -38,8 +40,9 @@ $ cd Funbox
 $ git submodule update --init --recursive
 
 # Build the daisy libraries (after installing the Daisy Toolchain):
-$ make -C DaisySP
+# Replace the daisy_petal files in libDaisy/src with the files in the "mod" directory to properly map controls on Funbox.
 $ make -C libDaisy
+$ make -C DaisySP
 
 # Build the desired pedal firmware (Mars pedal shown below as example) (after installing the Daisy Toolchain)
 $ cd software/Mars

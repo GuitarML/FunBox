@@ -5,6 +5,8 @@ Funbox uses a 125B sized enclosure.
 
 ## Funbox v1
 
+VERIFIED WORKING - using OshPark standard board manufacturing
+
 Funbox v1 uses a 125B enclosure with the following features:
 - Stereo In/Out
 - 9v power
@@ -16,7 +18,10 @@ Funbox v1 uses a 125B enclosure with the following features:
 
 [Tayda Drill Template]()
 
-VERIFIED WORKING - using OshPark standard board manufacturing
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v1_front.jpg)
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v1_inside.jpg)
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v1_pcb.jpg)
+
 
 ## Funbox v2
 
