@@ -16,7 +16,7 @@ Funbox v1 uses a 125B enclosure with the following features:
 - 2 LEDs
 - 2 Dipswitches
 
-[Tayda Drill Template]()
+[Tayda Drill Template](https://drill.taydakits.com/box-designs/new?public_key=bXVVdnZXK0pOVWJjZG5YOGtwd282Zz09Cg==)
 
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v1_front.jpg)
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v1_inside.jpg)
