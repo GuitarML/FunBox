@@ -3,6 +3,8 @@
 Neptune is a Stereo Reverb/Delay pedal. The reverb used here is from the [CloudSeed plugin](https://github.com/ValdemarOrn/CloudSeed) (MIT License), and the Delay includes normal, octave, and reverse modes.
 Neptune is very similar to the GuitarML Atlas pedal. The reverse delay is a modified version of the reverse delay from [Veno-Echo](https://github.com/AdamFulford/Veno-Echo) (MIT License)
 
+![app](https://github.com/GuitarML/Funbox/blob/main/software/images/neptune_infographic.jpg)
+
 ## Controls
 
 | Control | Description | Comment |

@@ -5,6 +5,8 @@ Mars is an amp sim / delay pedal. It includes 3 neural models, 3 Impulse Respons
 Note: Due to the processing power required for the neural models and IRs, Mars is a mono effect, which on the Funbox pedal is copied left to right channel for output. 
 If a stereo signal is going into the input, Mars will only take the left channel for processing.
 
+![app](https://github.com/GuitarML/Funbox/blob/main/software/images/mars_infographic.jpg)
+
 ## Controls
 
 | Control | Description | Comment |
