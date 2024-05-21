@@ -27,8 +27,6 @@ Tone toneOctLP;       // Low Pass for octave delay
 //ATone toneHP;    // High Pass
 float pfilter;
 
-//Balance bal;     // Balance for volume correction in filtering
-
 // Alternate functions
 bool alternateMode;
 
@@ -139,15 +137,12 @@ struct delay
 };
 
 
-
 // Left channel
 delay             delayL;
 delay             delayR;  
 
 
-
-
-bool knobMoved(float old_value, float new_value)        //// UPDATE  //// UPDATE  //// UPDATE
+bool knobMoved(float old_value, float new_value)
 {
     float tolerance = 0.005;
     if (new_value > (old_value + tolerance) || new_value < (old_value - tolerance)) {
@@ -180,7 +175,7 @@ void changeMode()
 void updateSwitch3() 
 {
     // DELAY ///////////////////////
-    if (pswitch3[0]) {                // If switch3 is up, Normal FWD mode
+    if (pswitch3[0]) {                // If switch3 is left, Normal FWD mode
         delayL.active = true;
         delayR.active = true;
         delayL.del->setOctave(false); 
@@ -189,7 +184,7 @@ void updateSwitch3()
         delayR.reverseMode = false;
 
 
-    } else if (pswitch3[1]) {         // If switch3 is down, REV mode
+    } else if (pswitch3[1]) {         // If switch3 is right, REV mode
         delayL.active = true;
         delayR.active = true;
         delayL.del->setOctave(false); 
@@ -229,7 +224,6 @@ void UpdateButtons()
         led1.Set(0.5f);  // Dim LED in alternate mode
     }
 
-    // TODO FOR FREEZE : Turn off LATE EQ FILTERS when frozen, but then set to previous setting (on or off) when done
 
     // If switch2 is pressed, freeze the current delay by not applying new delay and setting feedback to 1.0, set to false by default
     if(hw.switches[Funbox::FOOTSWITCH_2].RisingEdge())
@@ -258,8 +252,6 @@ void UpdateSwitches()
 {
 
     // Detect any changes in switch positions
-
-    // TODO UPDATE WITH LOGIC FROM MARS CODE
 
     // 3-way Switch 1
     bool changed1 = false;
@@ -360,21 +352,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             reverbMix = D * D;
             pmix = vmix;
         }
-        //pmix = vmix;
     }
-
-
-    // Set Filter Controls
-    /*
-    if (vfilter <= 0.5) {
-        //float filter_value = (vfilter * 39800.0f) + 100.0f;
-        //tone.SetFreq(filter_value);
-        reverb->SetParameter(::Parameter2::LineDecay, (vsize * .38 + 0.295)); // Range .295 to .675
-    } else {
-        //float filter_value = (vfilter - 0.5) * 800.0f + 40.0f;
-        //toneHP.SetFreq(filter_value);
-    }
-    */
 
     if (knobMoved(pfilter, vfilter)) {
         reverb->SetParameter(::Parameter2::PostCutoffFrequency, vfilter); // TODO maybe do something with the shelf filters as well
@@ -436,7 +414,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             
             psize = vsize;
 
-        //} else if (alternateMode && !freeze) {
         } else if (alternateMode && knobMoved(psize, vsize) && !freeze) {    //// UPDATE   //// UPDATE   //// UPDATE
             preDelayAlt = vsize;
             reverb->SetParameter(::Parameter2::PreDelay, preDelayAlt);
@@ -449,7 +426,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         if (!alternateMode) {
             reverb->SetParameter(::Parameter2::LineModAmount, vmodify); // Range 0 to 1
             pmodify = vmodify;
-        //} else {
+
         } else if (alternateMode && knobMoved(pmodify, vmodify)) {
             modAlt = vmodify;
             reverb->SetParameter(::Parameter2::LineModRate, modAlt); // Range 0 to ~1
@@ -458,13 +435,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     }
 
     force_reset = false;
-
-    //float inL[48];
-    //float outL[48];
-    //float inR[48];
-    //float outR[48];
-
-    //float delay_out[48];
 
     float inL[1];
     float outL[1];
@@ -478,12 +448,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     float inputL;
     float inputR;
-
-    // Order of effects
-    //   Delay -> Reverb -> 
-
-    // Note: If I need to reduce processing somewhere, try removing the Filter/Balance and use only CloudSeed's internal tone controls
-    //        Will need to double the delay's for stereo
 
     if(!bypass) {
         for (size_t i = 0; i < size; i++)
@@ -536,16 +500,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 balanced_outR =  (outR[0] * (reverbMix * 1.2))  * wetMix;
             }
 
-            /*
-            if (vfilter <= 0.5) {
-                filter_out = tone.Process(filter_in);
-                balanced_out = bal.Process(filter_out, filter_in);
-
-            } else {
-                filter_out = toneHP.Process(filter_in);
-                balanced_out = bal.Process(filter_out, filter_in);
-            }
-            */
 
             out[0][i] = inputL * dryMix + balanced_outL * wetMix;
             out[1][i] = inputR * dryMix + balanced_outR * wetMix;
@@ -637,14 +591,9 @@ int main(void)
     delayR.feedback = 0.0;
     delayR.active = true;     // Default to no delay
 
-
-    //tone.Init(samplerate);
-    //toneHP.Init(samplerate);
-
     toneOctLP.Init(samplerate);
     toneOctLP.SetFreq(3000.0);
 
-    //bal.Init(samplerate);
     pfilter = 0.5;
 
     freeze = false;
@@ -654,6 +603,8 @@ int main(void)
 
     ramp = 0.0;
     triggerMode = false;
+
+    updateSwitch3();
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;
