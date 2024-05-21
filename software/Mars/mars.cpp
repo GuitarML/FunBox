@@ -309,24 +309,22 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         if(bypass)
         {
             // Could do a trails mode here
-            if (pdip[0]) {   // Stereo bypass
-                out[0][i] = in[0][i];  
-                out[1][i] = in[1][i]; 
-            } else {
-                out[0][i] = in[0][i];  
-                out[1][i] = in[0][i]; 
-            }
+            out[0][i] = in[0][i];  
+            out[1][i] = in[0][i]; 
 
         }
         else
         {   
-            float ampOut;
+            float ampOut = 0.0;
             input_arr[0] = in[0][i] * vgain;
 
             // Process Neural Net Model //
-            ampOut = model.forward (input_arr) + input_arr[0];  
-            ampOut *= nnLevelAdjust;
-
+            if (pdip[0]) {   // Enable/Disable neural model
+                ampOut = model.forward (input_arr) + input_arr[0];  
+                ampOut *= nnLevelAdjust;
+            } else {
+                ampOut = input_arr[0];
+            }
 
             // Process Tone
             float filter_in =  ampOut;
@@ -382,7 +380,9 @@ int main(void)
     setupWeights();
     hw.SetAudioBlockSize(48); 
 
+    updateSwitch1();
     updateSwitch2();
+    updateSwitch3();
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;
