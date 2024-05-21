@@ -27,7 +27,7 @@ Funbox v1 uses a 125B enclosure with the following features:
 
 Funbox v2 adds MIDI In/Out via two 1/8" TRS jacks and up to a 4 dip switch array, instead of 2.
 
-[Tayda Drill Template]()
+[Tayda Drill Template](https://drill.taydakits.com/box-designs/new?public_key=M3BDZTdRSmFWRkF4QXpQUzRORjIwQT09Cg==)
 
 CURRENTLY UNTESTED 
 
@@ -36,6 +36,6 @@ CURRENTLY UNTESTED
 Funbox v3 replaces the MIDI out jack from version 2 with an Expression Input jack. 
 Note: Since most Expresion pedals use 1/4" TRS cables, an adapter is required (Female 1/4" to Male 1/8" stereo adapter, or 1/4" to 1/8" TRS cable.)
 
-[Tayda Drill Template]() (Same as version 2)
+[Tayda Drill Template](https://drill.taydakits.com/box-designs/new?public_key=M3BDZTdRSmFWRkF4QXpQUzRORjIwQT09Cg==) (Same as version 2)
 
 CURRENTLY UNTESTED 
