@@ -1,7 +1,7 @@
 # Neptune (Planet Series)
 
-Neptune is a Stereo Reverb/Delay pedal. The reverb used here is from the [CloudSeed plugin](https://github.com/ValdemarOrn/CloudSeed), and the Delay includes normal, octave, and reverse modes.
-Neptune is very similar to the GuitarML Atlas pedal. 
+Neptune is a Stereo Reverb/Delay pedal. The reverb used here is from the [CloudSeed plugin](https://github.com/ValdemarOrn/CloudSeed) (MIT License), and the Delay includes normal, octave, and reverse modes.
+Neptune is very similar to the GuitarML Atlas pedal. The reverse delay is a modified version of the reverse delay from [Veno-Echo](https://github.com/AdamFulford/Veno-Echo) (MIT License)
 
 ## Controls
 
