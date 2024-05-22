@@ -1,6 +1,9 @@
 # Mars (Planet Series)
 
-Mars is an amp sim / delay pedal. It includes 3 neural models, 3 Impulse Responses (Cab Sim), and a delay effect with dotted 8th and triplett modes. 
+Mars is an amp sim / delay pedal. It includes 3 neural models, 3 Impulse Responses (Cab Sim), and a delay effect with dotted 8th and triplett modes.
+
+Neural Network inference for the amp/pedal models uses [RTNeural](https://github.com/jatinchowdhury18/RTNeural)
+The Impluse Response code is a modified version of the IR processing in the [NAM plugin](https://github.com/sdatkinson/NeuralAmpModelerPlugin) (MIT License) 
 
 Note: Due to the processing power required for the neural models and IRs, Mars is a mono effect, which on the Funbox pedal is copied left to right channel for output. 
 If a stereo signal is going into the input, Mars will only take the left channel for processing.
