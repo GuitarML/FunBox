@@ -380,10 +380,6 @@ int main(void)
     setupWeights();
     hw.SetAudioBlockSize(48); 
 
-    updateSwitch1();
-    updateSwitch2();
-    updateSwitch3();
-
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;
     switch2[0]= Funbox::SWITCH_2_LEFT;
@@ -402,6 +398,9 @@ int main(void)
     pdip[0]= false;
     pdip[1]= false;
 
+    //updateSwitch1();
+    //updateSwitch2();
+    //updateSwitch3();
 
     Gain.Init(hw.knob[Funbox::KNOB_1], 0.1f, 2.5f, Parameter::LINEAR);
     Mix.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
