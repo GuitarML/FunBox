@@ -26,6 +26,8 @@ class DaisyPetal
         SW_8,    // Switch 3  right
         SW_9,    // Dip Switch 1
         SW_10,   // Dip Switch 2
+        SW_11,   // Dip Switch 3 (Only on v2/v3 boards, not v1)
+        SW_12,   // Dip Switch 4 (Only on v2/v3 boards, not v1)
         SW_LAST, // last pos
     };
 

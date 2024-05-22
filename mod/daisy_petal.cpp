@@ -19,6 +19,9 @@ constexpr Pin SW_7_PIN = seed::D2;  // Switch 3  left
 constexpr Pin SW_8_PIN = seed::D4;  // Switch 3  right
 constexpr Pin SW_9_PIN = seed::D1;  // Dip Switch 1
 constexpr Pin SW_10_PIN = seed::D3;  // Dip Switch 2
+constexpr Pin SW_11_PIN = seed::D5;  // Dip Switch 3 (Funbox v2/v3, not available on v1 board)
+constexpr Pin SW_12_PIN = seed::D6;  // Dip Switch 4 (Funbox v2/v3, not available on v1 board)
+
 
 
 // Encoder
@@ -291,6 +294,8 @@ void DaisyPetal::InitSwitches()
         SW_8_PIN,
         SW_9_PIN,
         SW_10_PIN,
+        SW_11_PIN,
+        SW_12_PIN,
     };
 
     for(size_t i = 0; i < SW_LAST; i++)
