@@ -91,11 +91,12 @@ void DaisyPetal::Init(bool boost)
     seed.Configure();
     seed.Init(boost);
     InitSwitches();
-    InitEncoder();
+    //InitEncoder();  // Comment out this since not used on Funbox? 
     InitLeds();
     InitAnalogControls();
     SetAudioBlockSize(48);
     //seed.usb_handle.Init(UsbHandle::FS_INTERNAL);
+    //InitMidi(); // Could initialize midi here, but for now leaving it up to the individual effect whether midi is used or not
 }
 
 void DaisyPetal::DelayMs(size_t del)
@@ -208,6 +209,14 @@ void DaisyPetal::ProcessDigitalControls()
     {
         switches[i].Debounce();
     }
+}
+
+void DaisyPetal::InitMidi()
+{   
+    MidiUartHandler::Config midi_config;
+    midi_config.transport_config.rx = seed::D30; // On Funbox v2 and v3 hardware
+    midi_config.transport_config.tx = seed::D29; // On Funbox v2 hardware only
+    midi.Init(midi_config);
 }
 
 

@@ -156,6 +156,9 @@ class DaisyPetal
     /** Process digital controls */
     void ProcessDigitalControls();
 
+    /** Initialize MIDI (Funbox addition) */  
+    void InitMidi();
+
     /** Turn all leds off */
     void ClearLeds();
 
@@ -187,6 +190,8 @@ class DaisyPetal
 
     RgbLed ring_led[8];       /**< & */
     Led    footswitch_led[4]; /**< & */
+
+    MidiUartHandler midi;
 
   private:
     void SetHidUpdateRates();
