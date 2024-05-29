@@ -389,14 +389,14 @@ int main(void)
     dip[0]= Funbox::SWITCH_DIP_1;
     dip[1]= Funbox::SWITCH_DIP_2;
 
-    pswitch1[0]= false;
-    pswitch1[1]= false;
-    pswitch2[0]= false;
-    pswitch2[1]= false;
-    pswitch3[0]= false;
-    pswitch3[1]= false;
-    pdip[0]= false;
-    pdip[1]= false;
+    pswitch1[0]= true; // TODO I think by setting all these to true, will force loading the correct model/ir on booting the pedal - verify
+    pswitch1[1]= true;
+    pswitch2[0]= true;
+    pswitch2[1]= true;
+    pswitch3[0]= true;
+    pswitch3[1]= true;
+    pdip[0]= true;
+    pdip[1]= true;
 
     //updateSwitch1();
     //updateSwitch2();
