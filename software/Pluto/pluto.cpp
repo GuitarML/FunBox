@@ -38,7 +38,16 @@ int             doubleTapCounterB;
 bool            checkDoubleTapB;
 bool            pausePlaybackB;
 
+// Reverb
+ReverbSc        verb;
 
+Tone toneA;       // Low Pass
+ATone toneHPA;    // High Pass
+Balance balA;     // Balance for volume correction in filtering
+
+Tone toneB;       // Low Pass
+ATone toneHPB;    // High Pass
+Balance balB;     // Balance for volume correction in filtering
 
 bool            bypass;
 
@@ -370,6 +379,51 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     looperB.SetIncrementSize(speed_inputBabs);
 
+
+    // EFFECTS //
+    if (pswitch2[0] == true) { // Center switch left
+ 
+
+    } else if (pswitch2[1] == true) { // Center switch right
+        float vReverbTime = vmodA;
+        if (vReverbTime < 0.01) { // if knob < 1%, set reverb to 0
+            verb.SetFeedback(0.0);
+        } else if (vReverbTime >= 0.01 && vReverbTime <= 0.1) {
+            verb.SetFeedback(vReverbTime * 6.4 ); // Reverb time range 0.0 to 0.6 for 1% to 10% knob turn (smooth ramping to useful reverb time values, i.e. 0.6 to 1)
+        } else {
+            verb.SetFeedback(vReverbTime * 0.4 + 0.6); // Reverb time range 0.6 to 1.0
+        }
+
+        float invertedFreq = 1.0 - vmodB; // Invert the damping param so that knob left is less dampening, knob right is more dampening
+        invertedFreq = invertedFreq * invertedFreq; // also square it for exponential taper (more control over lower frequencies)
+        verb.SetLpFreq(600.0 + invertedFreq * (16000.0 - 600.0));
+
+    } else { // Center switch center
+
+       // TODO Need to do CUBE taper for this filter control
+       float vfilterA = vmodA;
+        // Set Filter Controls
+        if (vfilterA <= 0.5) {
+            float filter_valueA = (vfilterA * 39800.0f) + 100.0f;
+            toneA.SetFreq(filter_valueA);
+        } else {
+            float filter_valueA = (vfilterA - 0.5) * 800.0f + 40.0f;
+            toneHPA.SetFreq(filter_valueA);
+        }
+
+        float vfilterB = vmodB;
+        // Set Filter Controls
+        if (vfilterB <= 0.5) {
+            float filter_valueB = (vfilterB * 39800.0f) + 100.0f;
+            toneB.SetFreq(filter_valueB);
+        } else {
+            float filter_valueB = (vfilterB - 0.5) * 800.0f + 40.0f;
+            toneHPB.SetFreq(filter_valueB);
+        }
+    }
+
+    float sendl, sendr, wetl, wetr;
+
     // TODO Add effects like filter and reverb
     for(size_t i = 0; i < size; i++)
     {
@@ -395,9 +449,46 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             loop_outB = looperB.Process(inL) * vlevelB * 2.0;
         }
 
+        wetl = wetr = 0.0;
+        if (pswitch2[0] == true) {
 
-        out[0][i] = inL + loop_outA + loop_outB;
-        out[1][i] = out[0][i];
+
+        } else if (pswitch2[1] == true) {
+            sendl = loop_outA;
+            sendr = loop_outB;
+            verb.Process(sendl, sendr, &wetl, &wetr);
+
+        } else {
+            // Process Tone
+            float filter_inA =  loop_outA;
+            float filter_outA;
+            
+            if (vmodA <= 0.5) {
+                filter_outA = toneA.Process(filter_inA);
+                loop_outA = balA.Process(filter_outA, filter_inA);
+
+            } else {
+                filter_outA = toneHPA.Process(filter_inA);
+                loop_outA = balA.Process(filter_outA, filter_inA);
+            }
+
+            // Process Tone
+            float filter_inB =  loop_outB;
+            float filter_outB;
+            
+            if (vmodB <= 0.5) {
+                filter_outB = toneB.Process(filter_inB);
+                loop_outB = balB.Process(filter_outB, filter_inB);
+
+            } else {
+                filter_outB = toneHPA.Process(filter_inB);
+                loop_outB = balA.Process(filter_outB, filter_inB);
+            }
+
+        }
+
+        out[0][i] = inL + loop_outA + loop_outB + wetl;
+        out[1][i] = inL + loop_outA + loop_outB + wetr;
 
 
         // Final mix
@@ -442,6 +533,7 @@ int main(void)
     hw.Init(); 
     
     hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_96KHZ);  // Test raising the samplerate to have higher fidelity at slower playback speeds
+                                                                        // ReverbSC doesn't work running at 96kHz, TODO look into getting this working
     samplerate = hw.AudioSampleRate();  
 
     hw.SetAudioBlockSize(48);
@@ -499,6 +591,15 @@ int main(void)
     led_oscB.SetFreq(1.5);
     led_oscB.SetWaveform(1);
 
+    verb.Init(samplerate/2.0);  // This seems to allow reverbSC to work when using 96kHz, sounds different
+
+    toneA.Init(samplerate);
+    toneHPA.Init(samplerate);
+    balA.Init(samplerate);
+
+    toneB.Init(samplerate);
+    toneHPB.Init(samplerate);
+    balB.Init(samplerate);
 
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
