@@ -20,7 +20,7 @@ DaisyPetal hw;
 Parameter levelA, modA, levelB, speedA, modB, speedB;
 
 // Looper Parameters
-#define MAX_SIZE (48000) // 1 minute of floats at 48 khz
+#define MAX_SIZE (96000 * 60) // 1 minute of floats at 96 khz
 float DSY_SDRAM_BSS bufA[MAX_SIZE];
 varSpeedLooper looperA;
 Oscillator      led_oscA; // For pulsing the led when recording / paused playback
@@ -280,7 +280,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         speed_inputA = vspeedA * 4.0 - 2.0;
         speed_inputAabs = abs(speed_inputA);
 
-        if (speed_inputA < 2.0) {
+        if (speed_inputA < 0.0) {
             looperA.SetReverse(true);
         } else {
             looperA.SetReverse(false);
@@ -310,7 +310,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             speed_inputA = 2.0;
         }
 
-        if (vspeedA < 2.0) {
+        if (speed_inputA < 0.0) {
             looperA.SetReverse(true);
         } else {
             looperA.SetReverse(false);
@@ -330,7 +330,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         speed_inputB = vspeedB * 4.0 - 2.0;
         speed_inputBabs = abs(speed_inputB);
 
-        if (speed_inputB < 2.0) {
+        if (speed_inputB < 0.0) {
             looperB.SetReverse(true);
         } else {
             looperB.SetReverse(false);
@@ -360,7 +360,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             speed_inputB = 2.0;
         }
 
-        if (vspeedB < 2.0) {
+        if (speed_inputB < 0.0) {
             looperB.SetReverse(true);
         } else {
             looperB.SetReverse(false);
@@ -370,7 +370,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     looperB.SetIncrementSize(speed_inputBabs);
 
-
+    // TODO Add effects like filter and reverb
     for(size_t i = 0; i < size; i++)
     {
         ledBrightnessA = led_oscA.Process();
@@ -440,7 +440,9 @@ int main(void)
     float samplerate;
 
     hw.Init(); 
-    samplerate = hw.AudioSampleRate();   // Test raising the samplerate to have higher fidelity at slower playback speeds
+    
+    hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_96KHZ);  // Test raising the samplerate to have higher fidelity at slower playback speeds
+    samplerate = hw.AudioSampleRate();  
 
     hw.SetAudioBlockSize(48);
 
@@ -477,6 +479,7 @@ int main(void)
     led_oscA.SetFreq(1.0);
     led_oscA.SetWaveform(1); // WAVE_SIN = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_RAMP = 3, WAVE_SQUARE = 4
     ledBrightnessA = 0.0;
+    pausePlaybackA = false;
 
     led_oscA.Init(samplerate);
     led_oscA.SetFreq(1.5);
@@ -490,6 +493,7 @@ int main(void)
     led_oscB.SetFreq(1.0);
     led_oscB.SetWaveform(1); // WAVE_SIN = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_RAMP = 3, WAVE_SQUARE = 4
     ledBrightnessB = 0.0;
+    pausePlaybackB = false;
 
     led_oscB.Init(samplerate);
     led_oscB.SetFreq(1.5);

@@ -91,19 +91,19 @@ void changeMode()
 
     reverb->ClearBuffers();
 
-    if (switch1[0] == true) {                 // Switch 1 Left
-        if (switch2[0] == true) {
+    if (pswitch1[0] == true) {                 // Switch 1 Left
+        if (pswitch2[0] == true) {
             reverb->initFactorySmallRoom();       // Switch 2 Left
-        } else if (switch2[1] == true) {
+        } else if (pswitch2[1] == true) {
             reverb->initFactoryDullEchos();    // Switch 2 Right
         } else {
             reverb->initFactoryMediumSpace();  // Switch 2 Center
         }
 
-    } else if (switch1[1] == true) {           // Switch 1 Right
-        if (switch2[0] == true) {                  // Switch 2 Left
+    } else if (pswitch1[1] == true) {           // Switch 1 Right
+        if (pswitch2[0] == true) {                  // Switch 2 Left
             reverb->initFactoryRubiKaFields();
-        } else if (switch2[1] == true) {                  // Switch 2 Right
+        } else if (pswitch2[1] == true) {                  // Switch 2 Right
             reverb->initFactoryHyperplane();
         } else {                                    // Switch 2 Center
             reverb->initFactoryThroughTheLookingGlass();
@@ -112,9 +112,9 @@ void changeMode()
         reverb->initFactoryMediumSpace();
 
     } else {                                   // Switch 1 Center
-        if (switch2[0] == true) {                  // Switch 2 Left
+        if (pswitch2[0] == true) {                  // Switch 2 Left
             reverb->initFactoryChorus();
-        } else if (switch2[1] == true) {          // Switch 2 Right
+        } else if (pswitch2[1] == true) {          // Switch 2 Right
             reverb->initFactory90sAreBack();
         } else {                                   // Switch 2 Center
             reverb->initFactoryNoiseInTheHallway();
@@ -196,7 +196,8 @@ void UpdateSwitches()
             changed2 = true;
         }
     }
-    //if (changed2) 
+    if (changed2) 
+        mode_changed = true;
     //    updateSwitch2();
 
     // 3-way Switch 3
@@ -255,7 +256,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
 
     if (pmix != vmix || force_reset == true) {
-        if (knobMoved(pmix, vmix)) {
+        if (knobMoved(pmix, vmix) || force_reset == true) {
             //    A cheap mostly energy constant crossfade from SignalSmith Blog
             float x2 = 1.0 - vmix;
             float A = vmix*x2;
@@ -286,7 +287,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     if ((prdecay != vrdecay || force_reset == true)) // Force reset to apply knob params when switching reverb modes
     {
 
-        if (knobMoved(prdecay, vrdecay) && !freeze && !release) {
+        if (knobMoved(prdecay, vrdecay) && !freeze && !release || force_reset == true) {
 
             reverb->SetParameter(::Parameter2::LineDecay, (vrdecay)); // Range 0 to 1
             prdecay = vrdecay;
@@ -296,7 +297,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     if ((pPreDelay != vpredelay || force_reset == true)) // Force reset to apply knob params when switching reverb modes
     {
-        if (knobMoved(pPreDelay, vpredelay)) {
+        if (knobMoved(pPreDelay, vpredelay) || force_reset == true) {
 
             reverb->SetParameter(::Parameter2::PreDelay, vpredelay);
             pPreDelay = vpredelay;
@@ -307,7 +308,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     if ((pmod != vmod || force_reset == true)) // Force reset to apply knob params when switching reverb modes
     {
 
-        if (knobMoved(pmod, vmod)) {
+        if (knobMoved(pmod, vmod) || force_reset == true) {
 
             reverb->SetParameter(::Parameter2::LineModAmount, vmod); // Range 0 to ~1
             pmod = vmod;
@@ -316,7 +317,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     if ((prate != vrate || force_reset == true)) // Force reset to apply knob params when switching reverb modes
     {
-        if (knobMoved(prate, vrate)) {
+        if (knobMoved(prate, vrate) || force_reset == true) {
 
             reverb->SetParameter(::Parameter2::LineModRate, vrate); // Range 0 to ~1
             prate = vrate;
@@ -325,7 +326,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     if ((pfilter != vfilter || force_reset == true)) // Force reset to apply knob params when switching reverb modes
     {
-        if (knobMoved(pfilter, vfilter)) {      // TODO: Right now these are reset for each reverb preset, do I want them to persist?
+        if (knobMoved(pfilter, vfilter) || force_reset == true) {      // TODO: Right now these are reset for each reverb preset, do I want them to persist?
         // Filter modes///////////////////////
             if (pswitch3[0]) {                // If switch3 is left, Lowpass filter
 
@@ -378,8 +379,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
             reverb->Process(inL, inR, outL, outR, 1); 
 
-            out[0][i] = inputL * dryMix + inL[0] * wetMix;
-            out[1][i] = inputR * dryMix + inR[0] * wetMix;
+            out[0][i] = inputL * dryMix + outL[0] * wetMix;
+            out[1][i] = inputR * dryMix + outR[0] * wetMix;
 
             // Silence and then ramp volume when switching reverb presets
             if (ramp < 1.0) {

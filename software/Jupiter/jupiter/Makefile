@@ -1,5 +1,5 @@
 # Project Name
-TARGET = neptune
+TARGET = jupiter
 
 USE_DAISYSP_LGPL = 1
 
