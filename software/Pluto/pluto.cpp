@@ -2,6 +2,7 @@
 #include "daisysp.h"
 #include "varSpeedLooper.h"
 #include "funbox.h"
+#include "reverbsc96.h"
 
 //
 // This is a template for creating a pedal on the GuitarML Funbox_v1/Daisy Seed platform.
@@ -28,7 +29,7 @@ float           ledBrightnessA;
 int             doubleTapCounterA;
 bool            checkDoubleTapA;
 bool            pausePlaybackA;
-
+float           currentSpeedA;
 
 float DSY_SDRAM_BSS bufB[MAX_SIZE];
 varSpeedLooper looperB;
@@ -37,9 +38,10 @@ float           ledBrightnessB;
 int             doubleTapCounterB;
 bool            checkDoubleTapB;
 bool            pausePlaybackB;
+float           currentSpeedB;
 
 // Reverb
-ReverbSc        verb;
+ReverbSc96        verb;  // Minor change to ReverbSc to use 96kHz default samplerate
 
 Tone toneA;       // Low Pass
 ATone toneHPA;    // High Pass
@@ -48,6 +50,9 @@ Balance balA;     // Balance for volume correction in filtering
 Tone toneB;       // Low Pass
 ATone toneHPB;    // High Pass
 Balance balB;     // Balance for volume correction in filtering
+
+Jitter jitterA;
+Jitter jitterB;
 
 bool            bypass;
 
@@ -86,11 +91,17 @@ void updateSwitch2() // left=, center=, right=
 void updateSwitch3() // left=, center=, right=
 {
     if (pswitch3[0] == true) {  // left
+        looperA.SetMode(varSpeedLooper::Mode::NORMAL);
+        looperB.SetMode(varSpeedLooper::Mode::NORMAL);
 
     } else if (pswitch3[1] == true) {  // right
 
+        looperA.SetMode(varSpeedLooper::Mode::FRIPPERTRONICS);
+        looperB.SetMode(varSpeedLooper::Mode::FRIPPERTRONICS);
 
     } else {   // center
+        looperA.SetMode(varSpeedLooper::Mode::ONETIME_DUB);
+        looperB.SetMode(varSpeedLooper::Mode::ONETIME_DUB);
 
     }    
 }
@@ -99,10 +110,9 @@ void updateSwitch3() // left=, center=, right=
 void UpdateButtons()
 {
 
-
     // LOOPER A //
     // Looper footswitch pressed (start/stop recording, doubletap to pause/unpause playback)
-    if(hw.switches[Funbox::FOOTSWITCH_1].RisingEdge())
+    if (hw.switches[Funbox::FOOTSWITCH_1].RisingEdge())
     {
         if (!pausePlaybackA) {
             looperA.TrigRecord();
@@ -156,7 +166,9 @@ void UpdateButtons()
 
     // LOOPER B //
     // Looper footswitch pressed (start/stop recording, doubletap to pause/unpause playback)
-    if(hw.switches[Funbox::FOOTSWITCH_2].RisingEdge())
+
+
+    if ((hw.switches[Funbox::FOOTSWITCH_2].RisingEdge() && !pdip[0]) || (hw.switches[Funbox::FOOTSWITCH_1].RisingEdge() && pdip[0]) ) // TODO, verify this logic runs both loopers in the same way when in stereo mode
     {
         if (!pausePlaybackB) {
             looperB.TrigRecord();
@@ -197,13 +209,14 @@ void UpdateButtons()
     }
 
     // If switch2 is held, clear the looper and turn off LED
-    if(hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 1000)
+    if((hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 1000 && !pdip[0]) || (hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 1000  && pdip[0]))
     {
         pausePlaybackB = false;
         led_oscB.SetWaveform(1); 
         looperB.Clear();
         led2.Set(0.0f);
     } 
+
 
 }
 
@@ -280,41 +293,50 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float vspeedB = speedB.Process();
 
     // Handle Knob Changes Here
- 
+
+
     // LOOPER A
     float speed_inputA = 0.0;
     float speed_inputAabs = 0.0;
 
     if (pswitch1[0] == true) { // Switch1 left = smooth
-        speed_inputA = vspeedA * 4.0 - 2.0;
-        speed_inputAabs = abs(speed_inputA);
 
-        if (speed_inputA < 0.0) {
-            looperA.SetReverse(true);
+        if (vspeedA <= 0.5) {
+            speed_inputA = vspeedA * 6.0 - 2.0; // maps 0 to 0.5 control to -2x to 1x speed
+            //speed_inputAabs = abs(speed_inputA);
         } else {
-            looperA.SetReverse(false);
+            speed_inputA = vspeedA * 2.0;  // maps 0.5 to 1.0 control to 1x to 2x speed
+            //speed_inputAabs = abs(speed_inputA);
+
         }
+
+
+        //if (speed_inputA < 0.0) {
+        //    looperA.SetReverse(true);
+        //} else {
+        //    looperA.SetReverse(false);
+        //}
     } else if (pswitch1[1] == true) { // Switch1 right = random TODO
 
     } else {                        // Switch1 center = stepped
-        if (vspeedA < 0.1) {
+        if (vspeedA < 0.05) {
             speed_inputA = -2.0;
-        } else if (vspeedA >= 0.1 && vspeedA <= 0.2) {
+        } else if (vspeedA >= 0.05 && vspeedA <= 0.15) {
             speed_inputA = -1.5;
-        } else if (vspeedA >= 0.2 && vspeedA <= 0.3) {
+        } else if (vspeedA >= 0.15 && vspeedA <= 0.25) {
             speed_inputA = -1.0;
-        } else if (vspeedA >= 0.3 && vspeedA <= 0.4) {
+        } else if (vspeedA >= 0.25 && vspeedA <= 0.35) {
             speed_inputA = -0.5;
-        } else if (vspeedA >= 0.4 && vspeedA <= 0.5) {
-            speed_inputA = -0.25;
-        } else if (vspeedA >= 0.5 && vspeedA <= 0.6) {
-            speed_inputA = 0.25;
-        } else if (vspeedA >= 0.6 && vspeedA <= 0.7) {
+        } else if (vspeedA >= 0.35 && vspeedA <= 0.45) {
             speed_inputA = 0.5;
-        } else if (vspeedA >= 0.7 && vspeedA <= 0.8) {
+        } else if (vspeedA >= 0.45 && vspeedA <= 0.55) {  // Noon is 1x speed
             speed_inputA = 1.0;
-        } else if (vspeedA >= 0.8 && vspeedA <= 0.9) {
+        } else if (vspeedA >= 0.55 && vspeedA <= 0.7) {
+            speed_inputA = 1.25;
+        } else if (vspeedA >= 0.7 && vspeedA <= 0.8) {
             speed_inputA = 1.5;
+        } else if (vspeedA >= 0.8 && vspeedA <= 0.9) {
+            speed_inputA = 1.75;
         } else {
             speed_inputA = 2.0;
         }
@@ -325,9 +347,9 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             looperA.SetReverse(false);
         }
         speed_inputAabs = abs(speed_inputA);
-    }
 
-    looperA.SetIncrementSize(speed_inputAabs);
+        looperA.SetIncrementSize(speed_inputAabs);
+    }
 
 
 
@@ -335,36 +357,43 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float speed_inputB = 0.0;
     float speed_inputBabs = 0.0;
 
-    if (pswitch3[0] == true) { // Switch3 left = smooth
-        speed_inputB = vspeedB * 4.0 - 2.0;
-        speed_inputBabs = abs(speed_inputB);
-
-        if (speed_inputB < 0.0) {
-            looperB.SetReverse(true);
+    // TODO At some point combine the logic of using pswitch1 for both loopers
+    if (pswitch1[0] == true) { // Switch3 left = smooth
+        if (vspeedB <= 0.5) {
+            speed_inputB = vspeedB * 6.0 - 2.0; // maps 0 to 0.5 control to -2x to 1x speed
+            //speed_inputBabs = abs(speed_inputB);
         } else {
-            looperB.SetReverse(false);
+            speed_inputB = vspeedB * 2.0;  // maps 0.5 to 1.0 control to 1x to 2x speed
+            //speed_inputBabs = abs(speed_inputB);
         }
-    } else if (pswitch3[1] == true) { // Switch3 right = random TODO
+
+
+        //if (speed_inputB < 0.0) {
+        //    looperB.SetReverse(true);
+        //} else {
+        //    looperB.SetReverse(false);
+        //}
+    } else if (pswitch1[1] == true) { // Switch3 right = random TODO
 
     } else {                        // Switch3 center = stepped
-        if (vspeedB < 0.1) {
+        if (vspeedB < 0.05) {
             speed_inputB = -2.0;
-        } else if (vspeedB >= 0.1 && vspeedB <= 0.2) {
+        } else if (vspeedB >= 0.05 && vspeedB <= 0.15) {
             speed_inputB = -1.5;
-        } else if (vspeedB >= 0.2 && vspeedB <= 0.3) {
+        } else if (vspeedB >= 0.15 && vspeedB <= 0.25) {
             speed_inputB = -1.0;
-        } else if (vspeedB >= 0.3 && vspeedB <= 0.4) {
+        } else if (vspeedB >= 0.25 && vspeedB <= 0.35) {
             speed_inputB = -0.5;
-        } else if (vspeedB >= 0.4 && vspeedB <= 0.5) {
-            speed_inputB = -0.25;
-        } else if (vspeedB >= 0.5 && vspeedB <= 0.6) {
-            speed_inputB = 0.25;
-        } else if (vspeedB >= 0.6 && vspeedB <= 0.7) {
+        } else if (vspeedB >= 0.35 && vspeedB <= 0.45) {
             speed_inputB = 0.5;
-        } else if (vspeedB >= 0.7 && vspeedB <= 0.8) {
+        } else if (vspeedB >= 0.45 && vspeedB <= 0.55) {  // Noon is 1x speed
             speed_inputB = 1.0;
-        } else if (vspeedB >= 0.8 && vspeedB <= 0.9) {
+        } else if (vspeedB >= 0.55 && vspeedB <= 0.7) {
+            speed_inputB = 1.25;
+        } else if (vspeedB >= 0.7 && vspeedB <= 0.8) {
             speed_inputB = 1.5;
+        } else if (vspeedB >= 0.8 && vspeedB <= 0.9) {
+            speed_inputB = 1.75;
         } else {
             speed_inputB = 2.0;
         }
@@ -375,14 +404,24 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             looperB.SetReverse(false);
         }
         speed_inputBabs = abs(speed_inputB);
+
+        looperB.SetIncrementSize(speed_inputBabs);
     }
 
-    looperB.SetIncrementSize(speed_inputBabs);
+
+
 
 
     // EFFECTS //
     if (pswitch2[0] == true) { // Center switch left
- 
+        // Stability for loop A
+        jitterA.SetCpsMax(vmodA);  // 0 to 4/s
+        jitterA.SetAmp(vmodA);
+
+        // Stability for loop B
+        jitterB.SetCpsMax(vmodB);  // 0 to 4/s
+        jitterB.SetAmp(vmodB);
+        
 
     } else if (pswitch2[1] == true) { // Center switch right
         float vReverbTime = vmodA;
@@ -422,19 +461,59 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         }
     }
 
+    float inL, inR;
     float sendl, sendr, wetl, wetr;
 
-    // TODO Add effects like filter and reverb
     for(size_t i = 0; i < size; i++)
     {
         ledBrightnessA = led_oscA.Process();
         ledBrightnessB = led_oscB.Process();
 
+        // Handle smooth speed knob transitions
+        if (pswitch1[0] == true) { // Switch1 left = smooth
+            // Smooth out Looper A transitions
+            fonepole(currentSpeedA, speed_inputA, .00006f); 
+
+            if (currentSpeedA < 0.0) {
+                looperA.SetReverse(true);
+            } else {
+                looperA.SetReverse(false);
+            }
+            speed_inputAabs = abs(currentSpeedA);
+            looperA.SetIncrementSize(speed_inputAabs);
+
+
+            // Smooth out Looper B transitions
+            fonepole(currentSpeedB, speed_inputB, .00006f);  
+
+            if (currentSpeedB < 0.0) {
+                looperB.SetReverse(true);
+            } else {
+                looperB.SetReverse(false);
+            }
+            speed_inputBabs = abs(currentSpeedB);
+            looperB.SetIncrementSize(speed_inputBabs);
+
+        } 
+
+        if (pswitch2[0] == true) {    // Stability
+            // Set Stablility of Loops (hopefully it can keep up setting this for every sample based on Jitter)
+            float jitter_outA = jitterA.Process();// * 0.01; // TODO If this works fix scaling as needed
+            float jitter_outB = jitterB.Process();// * 0.01;           
+
+            looperA.SetIncrementSize(speed_inputAabs + jitter_outA);
+            looperB.SetIncrementSize(speed_inputBabs + jitter_outB);
+        }
+
+
         // Process your signal here
-
-
-        float inL = in[0][i];
-        float inR = in[1][i];
+        if (pdip[0]) {            // If Stereo, use Looper A for Left channel and Looper B for right channel
+            inL = in[0][i];
+            inR = in[1][i]; 
+        } else {                  // Else if MISO, just use the left channel for both looper inputs
+            inL = in[0][i];
+            inR = in[0][i];
+        }
 
 
         /// Process Looper A // 
@@ -446,19 +525,17 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         /// Process Looper B // 
         float loop_outB = 0.0;
         if (!pausePlaybackB) {
-            loop_outB = looperB.Process(inL) * vlevelB * 2.0;
+            loop_outB = looperB.Process(inR) * vlevelB * 2.0;
         }
 
         wetl = wetr = 0.0;
-        if (pswitch2[0] == true) {
 
-
-        } else if (pswitch2[1] == true) {
+        if (pswitch2[1] == true) {  // Reverb
             sendl = loop_outA;
             sendr = loop_outB;
             verb.Process(sendl, sendr, &wetl, &wetr);
 
-        } else {
+        } else if (pswitch2[0] == false && pswitch2[1] == false) {                 // Filter
             // Process Tone
             float filter_inA =  loop_outA;
             float filter_outA;
@@ -486,20 +563,17 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             }
 
         }
+        if (pdip[0]) {            // If Stereo, output loop A on left and loop b on right
+                                  // Note, if using stereo and moving the speed settings for loop A and B differently.. things will get really wacky, should I make only 1 speed control for stereo?
 
-        out[0][i] = inL + loop_outA + loop_outB + wetl;
-        out[1][i] = inL + loop_outA + loop_outB + wetr;
+            out[0][i] = inL + loop_outA + wetl;
+            out[1][i] = inR + loop_outB + wetr;
 
+        } else {                  // Else if MISO, output both loops to both left and right channels
 
-        // Final mix
-        //if (pdip[0] == false) {// MISO
-            //out[0][i] = (inL * dryMix + effectsL * wetMix) + (inL * dryMix + effectsR * wetMix) * vLevel / 2.0;
-            //out[1][i] = out[0][i];
-
-        //} else { // Stereo
-            //out[0][i] = (inL * dryMix + effectsL * wetMix) * vLevel;
-             //out[1][i] = (inL * dryMix + effectsR * wetMix) * vLevel;
-        //}
+            out[0][i] = inL + loop_outA + loop_outB + wetl;
+            out[1][i] = inR + loop_outA + loop_outB + wetr;
+        }
      
     }
 
@@ -553,7 +627,7 @@ int main(void)
     pswitch2[1]= false;
     pswitch3[0]= false;
     pswitch3[1]= false;
-    pdip[0]= false;
+    pdip[0]= false; // MISO or STEREO
     pdip[1]= false;
 
 
@@ -572,6 +646,7 @@ int main(void)
     led_oscA.SetWaveform(1); // WAVE_SIN = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_RAMP = 3, WAVE_SQUARE = 4
     ledBrightnessA = 0.0;
     pausePlaybackA = false;
+    currentSpeedA = 1.0;
 
     led_oscA.Init(samplerate);
     led_oscA.SetFreq(1.5);
@@ -586,12 +661,13 @@ int main(void)
     led_oscB.SetWaveform(1); // WAVE_SIN = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_RAMP = 3, WAVE_SQUARE = 4
     ledBrightnessB = 0.0;
     pausePlaybackB = false;
+    currentSpeedB = 1.0;
 
     led_oscB.Init(samplerate);
     led_oscB.SetFreq(1.5);
     led_oscB.SetWaveform(1);
 
-    verb.Init(samplerate/2.0);  // This seems to allow reverbSC to work when using 96kHz, sounds different
+    verb.Init(samplerate); 
 
     toneA.Init(samplerate);
     toneHPA.Init(samplerate);
@@ -601,6 +677,11 @@ int main(void)
     toneHPB.Init(samplerate);
     balB.Init(samplerate);
 
+    jitterA.Init(samplerate);
+    jitterA.SetAmp(1.0);
+    jitterB.Init(samplerate);
+    jitterB.SetAmp(1.0);
+    
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
     led1.Update();

@@ -11,7 +11,7 @@ OPT = -O1
 
 
 # Sources
-CPP_SOURCES = pluto.cpp
+CPP_SOURCES = pluto.cpp reverbsc96.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy
