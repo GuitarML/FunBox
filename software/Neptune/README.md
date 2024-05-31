@@ -31,3 +31,5 @@ Neptune is very similar to the GuitarML Atlas pedal. The reverse delay is a modi
 ## Build
 
 Neptune runs in SRAM memory on the Daisy Seed. You must use the Bootloader to load the executable.
+
+Before building Neptune, you must build Cloudseed with ```make```

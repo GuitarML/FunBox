@@ -401,20 +401,20 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     {
         if (!alternateMode && !freeze && !release) {
 
-            if (pswitch1[0] == true) {  // Hall
-                reverb->SetParameter(::Parameter2::LineDecay, (vsize * .38 + 0.295)); // Range .295 to .675
+            if (pswitch1[0] == true) {  // Chorus
+                reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
 
-            } else if (pswitch1[1] == true) {  // Cloud
-                reverb->SetParameter(::Parameter2::LineDecay, (vsize * 0.58 + 0.42)); // Range 0.42 to 1.0
+            } else if (pswitch1[1] == true) {  // Hall
+                reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
 
-            } else {  // Spring
-                reverb->SetParameter(::Parameter2::LineDecay, (vsize * 0.35 + 0.35)); // Range 0.35 to 0.7
+            } else {  // Cloud
+                reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
 
             }
             
             psize = vsize;
 
-        } else if (alternateMode && knobMoved(psize, vsize) && !freeze) {    //// UPDATE   //// UPDATE   //// UPDATE
+        } else if (alternateMode && knobMoved(psize, vsize) && !freeze) {  
             preDelayAlt = vsize;
             reverb->SetParameter(::Parameter2::PreDelay, preDelayAlt);
             psize = vsize;
