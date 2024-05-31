@@ -3,8 +3,6 @@
 Jupiter is a Stereo Reverb pedal. The reverb used here is from the [CloudSeed plugin](https://github.com/ValdemarOrn/CloudSeed) (MIT License). It is the same reverb from the Neptune pedal, 
 but more controls are exposed to the user, including access to all 9 of CloudSeed's presets. The maximum line count is limited to 2 per channel for processing on the Daisy Seed.
 
-![app](https://github.com/GuitarML/Funbox/blob/main/software/images/neptune_infographic.jpg)
-
 ## Controls
 
 | Control | Description | Comment |
@@ -29,18 +27,18 @@ but more controls are exposed to the user, including access to all 9 of CloudSee
 | Audio In 1 | Stereo In | Right channel ignored if MISO Mode turned on |
 | Audio Out 1 | Stereo Out  |  |
 
-Presets: (Switch1/Switch2 position)
-Left/Left  Small room
-Left/Mid   Med space
-Left/Right Dull Echoes
+Presets: (Switch1/Switch2 position)<br>
+Left/Left  Small room<br>
+Left/Mid   Med space<br>
+Left/Right Dull Echoes<br><br>
 
-Mid/Left  Factory Chorus
-Mid/Mid   Noise in Hallway
-Mid/Right 90s
+Mid/Left  Factory Chorus<br>
+Mid/Mid   Noise in Hallway<br>
+Mid/Right 90s<br><br>
 
-Right/Left  RubiKai
-Right/Mid   LookingGlass
-Right/Right Hyperplane
+Right/Left  RubiKai<br>
+Right/Mid   LookingGlass<br>
+Right/Right Hyperplane<br>
 
 
 ## Build
