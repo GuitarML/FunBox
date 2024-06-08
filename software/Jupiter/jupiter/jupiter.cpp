@@ -16,7 +16,7 @@ using namespace funbox;
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-::daisy::Parameter rdecay, predelay, mod, rate, mix, filter;
+::daisy::Parameter rdecay, mix, lowfreq, lowshelf, highfreq, highshelf;
 bool      bypass;
 Led led1, led2;
 
@@ -30,15 +30,13 @@ int release_counter;
 
 bool freeze;
 
-float ramp;
-bool mode_changed;
-bool triggerMode;
+
 
 bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[2];
 int             switch1[2], switch2[2], switch3[2], dip[2];
 
 // Initialize "previous" p values
-float prdecay, pmod, pPreDelay, pmix, pfilter, prate;
+float prdecay, plowfreq, plowshelf, pmix, phighfreq, phighshelf;
 
 CloudSeed::ReverbController* reverb = 0;
 
@@ -71,63 +69,72 @@ bool knobMoved(float old_value, float new_value)
     }
 }
 
-void changeMode()
+void updateSwitch1()  // TODO: Tune these settings so that they make 3 ear pleasing stages of "Lushness"
 {
-    // For the different modes, write a preset in the CloudSeed code, and switch presets here
 
-    // Presets are controlled by left and middle switch
+    if (pswitch1[0] == true) {
 
-    // Left/Left  Small room
-    // Left/Mid   Med space
-    // Left/Right Dull Echoes
+        reverb->SetParameter(::Parameter2::LateDiffusionEnabled, 0.0);
+        reverb->SetParameter(::Parameter2::LateDiffusionStages,  0.4);
 
-    // Mid/Left  Factory Chorus
-    // Mid/Mid   Noise in Hallway
-    // Mid/Right 90s
+        reverb->SetParameter(::Parameter2::LateStageTap, 1.0);
+        reverb->SetParameter(::Parameter2::Interpolation, 0.0);
 
-    // Right/Left  RubiKai
-    // Right/Mid   LookingGlass
-    // Right/Right Hyperplane
+        reverb->SetParameter(::Parameter2::LineCount, 1); 
 
-    reverb->ClearBuffers();
+    } else if (pswitch1[1] == true) {
 
-    if (pswitch1[0] == true) {                 // Switch 1 Left
-        if (pswitch2[0] == true) {
-            reverb->initFactorySmallRoom();       // Switch 2 Left
-        } else if (pswitch2[1] == true) {
-            reverb->initFactoryDullEchos();    // Switch 2 Right
-        } else {
-            reverb->initFactoryMediumSpace();  // Switch 2 Center
-        }
+        reverb->SetParameter(::Parameter2::LateDiffusionEnabled, 1.0);
+        reverb->SetParameter(::Parameter2::LateDiffusionStages, 0.2);
 
-    } else if (pswitch1[1] == true) {           // Switch 1 Right
-        if (pswitch2[0] == true) {                  // Switch 2 Left
-            reverb->initFactoryRubiKaFields();
-        } else if (pswitch2[1] == true) {                  // Switch 2 Right
-            reverb->initFactoryHyperplane();
-        } else {                                    // Switch 2 Center
-            reverb->initFactoryThroughTheLookingGlass();
-        }
+        reverb->SetParameter(::Parameter2::LateStageTap, 0.0);
+        reverb->SetParameter(::Parameter2::Interpolation, 1.0);
 
-        reverb->initFactoryMediumSpace();
+        reverb->SetParameter(::Parameter2::LineCount, 2); 
 
-    } else {                                   // Switch 1 Center
-        if (pswitch2[0] == true) {                  // Switch 2 Left
-            reverb->initFactoryChorus();
-        } else if (pswitch2[1] == true) {          // Switch 2 Right
-            reverb->initFactory90sAreBack();
-        } else {                                   // Switch 2 Center
-            reverb->initFactoryNoiseInTheHallway();
-        }          
-    } 
+    } else {
 
-    reverb->SetParameter(::Parameter2::LineCount, 2); // TODO Set based on reverb type
-    force_reset = true; // This allows the knob controlled params to be reset without moving the knobs, when a new mode is selected
+        reverb->SetParameter(::Parameter2::LateDiffusionEnabled, 1.0);
+        reverb->SetParameter(::Parameter2::LateDiffusionStages, 0.4);
+
+        reverb->SetParameter(::Parameter2::LateStageTap, 1.0);
+        reverb->SetParameter(::Parameter2::Interpolation, 1.0);
+
+        reverb->SetParameter(::Parameter2::LineCount, 2); 
+
+    }
+
 }
+
+
+void updateSwitch2() 
+{
+    unsigned int irIndex = 0;
+
+    if (pswitch2[0] == true) {
+        reverb->SetParameter(::Parameter2::LineModAmount, 0.0); // Range 0 to ~1
+        reverb->SetParameter(::Parameter2::LineModRate, 0.0); // Range 0 to ~1
+    } else if (pswitch2[1] == true) {
+        reverb->SetParameter(::Parameter2::LineModAmount, 1.0); // Range 0 to ~1
+        reverb->SetParameter(::Parameter2::LineModRate, 1.0); // Range 0 to ~1
+    } else {
+        reverb->SetParameter(::Parameter2::LineModAmount, 0.5); // Range 0 to ~1
+        reverb->SetParameter(::Parameter2::LineModRate, 0.3); // Range 0 to ~1
+    }
+
+}
+
+
 
 void updateSwitch3() 
 {
-    // Handled in the audio callback
+    if (pswitch3[0] == true) {
+        reverb->SetParameter(::Parameter2::PreDelay, 0.0);
+    } else if (pswitch3[1] == true) {
+        reverb->SetParameter(::Parameter2::PreDelay, 0.5);
+    } else {
+        reverb->SetParameter(::Parameter2::PreDelay, 0.2);
+    }
 }
 
 
@@ -150,7 +157,7 @@ void UpdateButtons()
     if(hw.switches[Funbox::FOOTSWITCH_2].RisingEdge())
     {
         // Apply freeze
-        reverb->SetParameter(::Parameter2::LineDecay, 1.2); // Set to max feedback/rdecay (~60 seconds)  TODO: Try setting greater than 1
+        reverb->SetParameter(::Parameter2::LineDecay, 1.1); // Set to max feedback/rdecay (~60 seconds)  TODO: Try setting greater than 1
         freeze = true;
 
         led2.Set(1.0);       // Keep LED on if frozen
@@ -171,21 +178,17 @@ void UpdateButtons()
 
 void UpdateSwitches()
 {
-
-    // Detect any changes in switch positions
-
     // 3-way Switch 1
     bool changed1 = false;
     for(int i=0; i<2; i++) {
         if (hw.switches[switch1[i]].Pressed() != pswitch1[i]) {
             pswitch1[i] = hw.switches[switch1[i]].Pressed();
             changed1 = true;
-            
         }
     }
     if (changed1) 
-        mode_changed = true;
-
+        updateSwitch1();
+    
 
 
     // 3-way Switch 2
@@ -197,8 +200,7 @@ void UpdateSwitches()
         }
     }
     if (changed2) 
-        mode_changed = true;
-    //    updateSwitch2();
+        updateSwitch2();
 
     // 3-way Switch 3
     bool changed3 = false;
@@ -211,6 +213,7 @@ void UpdateSwitches()
     if (changed3) 
         updateSwitch3();
 
+
     // Dip switches
     for(int i=0; i<2; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
@@ -220,13 +223,6 @@ void UpdateSwitches()
     }
 
 
-    if (mode_changed) {
-        if (ramp > 0.95) { //TODO See if this helps prevent mode from changing too quickly and overloading
-            ramp = 0.0;
-            triggerMode = true;
-
-        }
-    }
 
 }
 
@@ -246,13 +242,13 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateSwitches();
 
     float vrdecay = rdecay.Process();
-    float vpredelay = predelay.Process();
-
-    float vmod = mod.Process();
-    float vrate = rate.Process();
-
     float vmix = mix.Process();
-    float vfilter = filter.Process();
+    
+    float vlowfreq = lowfreq.Process();
+    float vlowshelf = lowshelf.Process();
+
+    float vhighfreq = highfreq.Process();
+    float vhighshelf = highshelf.Process();
 
 
     if (pmix != vmix || force_reset == true) {
@@ -295,56 +291,44 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     }
 
 
-    if ((pPreDelay != vpredelay || force_reset == true)) // Force reset to apply knob params when switching reverb modes
+    if ((plowfreq != vlowfreq || force_reset == true)) // Force reset to apply knob params when switching reverb modes
     {
-        if (knobMoved(pPreDelay, vpredelay) || force_reset == true) {
+        if (knobMoved(plowfreq, vlowfreq) || force_reset == true) {
 
-            reverb->SetParameter(::Parameter2::PreDelay, vpredelay);
-            pPreDelay = vpredelay;
+            reverb->SetParameter(::Parameter2::PostLowShelfFrequency, vlowfreq);
+            plowfreq = vlowfreq;
+        }
+    }
+
+    if ((plowshelf != vlowshelf || force_reset == true)) // Force reset to apply knob params when switching reverb modes
+    {
+        if (knobMoved(plowshelf, vlowshelf) || force_reset == true) {
+
+            reverb->SetParameter(::Parameter2::PostLowShelfGain, vlowshelf);
+            plowshelf = vlowshelf;
+        }
+    }
+
+    if ((phighfreq != vhighfreq || force_reset == true)) // Force reset to apply knob params when switching reverb modes
+    {
+        if (knobMoved(phighfreq, vhighfreq) || force_reset == true) {
+
+            reverb->SetParameter(::Parameter2::PostHighShelfFrequency, vhighfreq);
+            phighfreq = vhighfreq;
+        }
+    }
+
+    if ((phighshelf != vhighshelf || force_reset == true)) // Force reset to apply knob params when switching reverb modes
+    {
+        if (knobMoved(phighshelf, vhighshelf) || force_reset == true) {
+
+            reverb->SetParameter(::Parameter2::PostHighShelfGain, vhighshelf);
+            phighshelf = vhighshelf;
         }
     }
 
 
-    if ((pmod != vmod || force_reset == true)) // Force reset to apply knob params when switching reverb modes
-    {
 
-        if (knobMoved(pmod, vmod) || force_reset == true) {
-
-            reverb->SetParameter(::Parameter2::LineModAmount, vmod); // Range 0 to ~1
-            pmod = vmod;
-        }
-    }
-
-    if ((prate != vrate || force_reset == true)) // Force reset to apply knob params when switching reverb modes
-    {
-        if (knobMoved(prate, vrate) || force_reset == true) {
-
-            reverb->SetParameter(::Parameter2::LineModRate, vrate); // Range 0 to ~1
-            prate = vrate;
-        }
-    }
-
-    if ((pfilter != vfilter || force_reset == true)) // Force reset to apply knob params when switching reverb modes
-    {
-        if (knobMoved(pfilter, vfilter) || force_reset == true) {      // TODO: Right now these are reset for each reverb preset, do I want them to persist?
-        // Filter modes///////////////////////
-            if (pswitch3[0]) {                // If switch3 is left, Lowpass filter
-
-                reverb->SetParameter(::Parameter2::PostCutoffFrequency, vfilter); 
-
-            } else if (pswitch3[1]) {         // If switch3 is right, High Shelf
-
-                reverb->SetParameter(::Parameter2::PostHighShelfGain, vfilter); 
-
-            } else {                           // If switch3 is middle, Low Shelf
-
-                reverb->SetParameter(::Parameter2::PostLowShelfGain, vfilter); 
-
-            }
-
-            pfilter = vfilter;
-        }
-    }
 
     force_reset = false;
 
@@ -382,18 +366,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             out[0][i] = inputL * dryMix + outL[0] * wetMix;
             out[1][i] = inputR * dryMix + outR[0] * wetMix;
 
-            // Silence and then ramp volume when switching reverb presets
-            if (ramp < 1.0) {
-                ramp += 0.001;
-                out[0][i] = 0.0;
-                out[1][i] = 0.0;
-                if (ramp > 0.1 && triggerMode == true) {
-                    triggerMode = false;
-                    changeMode();
-                    mode_changed = false;
-                }
 
-            }
         }
 
     } else {
@@ -424,34 +397,35 @@ int main(void)
     CloudSeed::FastSin::Init();
 
     reverb = new CloudSeed::ReverbController(samplerate);
-    changeMode();
+
     using namespace CloudSeed;
-    //reverb->SetParameter(::Parameter2::PreDelay, 0.0);  // Set initial predelay to 0.0 (controlled by Alt param)
+    reverb->ClearBuffers();
+    reverb->initFactoryRubiKaFields();
+    reverb->SetParameter(::Parameter2::LineCount, 2); // TODO Set based on reverb type
+    force_reset = true; // This allows the knob controlled params to be reset without moving the knobs, when a new mode is selected
+
 
     hw.SetAudioBlockSize(48);
 
-    rdecay.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
-    mod.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
-    mix.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
-    predelay.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
-    rate.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, ::daisy::Parameter::CUBE);
-    filter.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
+    rdecay.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, ::daisy::Parameter::LINEAR); // LOG to go high fast?
+    lowfreq.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
+    highfreq.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
+    mix.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
+    lowshelf.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
+    highshelf.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
 
 
     pmix = 0.5;
-    pPreDelay = 0.0;
+    plowfreq = 0.0;
     prdecay = 0.0;
-    pmod = 0.0;
-    prate = 0.0;
-    pfilter = 0.0;
+    plowshelf = 0.0;
+    phighfreq = 0.0;
+    phighshelf = 0.0;
 
     freeze = false;
     release = false;
     release_counter = 0;
     force_reset = false;
-
-    ramp = 0.0;
-    triggerMode = false;
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;

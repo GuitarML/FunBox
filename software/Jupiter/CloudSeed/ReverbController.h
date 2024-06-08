@@ -37,12 +37,12 @@ namespace CloudSeed
 			, channelR(bufferSize, samplerate, ChannelLR::Right)
 		{
 			this->samplerate = samplerate;
-			initFactoryChorus();
+			//initFactoryChorus();
 			//initFactoryDullEchos();
 			//initFactoryHyperplane();
 			//initFactoryMediumSpace();
 			//initFactoryNoiseInTheHallway();
-			//initFactoryRubiKaFields();
+			initFactoryRubiKaFields();
 			//initFactorySmallRoom();
 			//initFactory90sAreBack();
 			//initFactoryThroughTheLookingGlass();
@@ -364,8 +364,8 @@ namespace CloudSeed
 			//parameters[(int)Parameter2::LineCount] = 0.0; 
 			parameters[(int)Parameter2::LineDelay] = 0.68500018119812012;
 			parameters[(int)Parameter2::LineDecay] = 0.82999974489212036;
-			parameters[(int)Parameter2::LateDiffusionEnabled] = .5;
-			parameters[(int)Parameter2::LateDiffusionStages] = 0.4;
+			//parameters[(int)Parameter2::LateDiffusionEnabled] = 1.0;
+			//parameters[(int)Parameter2::LateDiffusionStages] = 0.4;
 			parameters[(int)Parameter2::LateDiffusionDelay] = 0.69499951601028442;
 			parameters[(int)Parameter2::LateDiffusionFeedback] = 0.71499985456466675;
 			parameters[(int)Parameter2::PostLowShelfGain] = 0.87999987602233887;
@@ -393,9 +393,9 @@ namespace CloudSeed
 			parameters[(int)Parameter2::LowPassEnabled] = 0.0;
 			parameters[(int)Parameter2::LowShelfEnabled] = 1.0;
 			parameters[(int)Parameter2::HighShelfEnabled] = 1.0;
-			parameters[(int)Parameter2::CutoffEnabled] = 1.0;
-			parameters[(int)Parameter2::LateStageTap] = 1.0;
-			parameters[(int)Parameter2::Interpolation] = 0.0;
+			parameters[(int)Parameter2::CutoffEnabled] = 0.0;
+			//parameters[(int)Parameter2::LateStageTap] = 1.0;
+			//parameters[(int)Parameter2::Interpolation] = 0.0;
 
 			for (auto value = 0; value < (int)Parameter2::Count; value++)
 			{
