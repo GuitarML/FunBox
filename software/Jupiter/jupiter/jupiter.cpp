@@ -322,7 +322,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     {
         if (knobMoved(phighshelf, vhighshelf) || force_reset == true) {
 
-            reverb->SetParameter(::Parameter2::PostHighShelfGain, vhighshelf);
+            reverb->SetParameter(::Parameter2::PostHighShelfGain, vhighshelf * 0.7 + 0.3);
             phighshelf = vhighshelf;
         }
     }
