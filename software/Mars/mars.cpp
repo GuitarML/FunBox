@@ -340,20 +340,20 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 balanced_out = bal.Process(filter_out, filter_in);
             }
 
+            delay_out = delay1.Process(balanced_out);   // Moved delay prior to IR
 
             // IMPULSE RESPONSE //
             float impulse_out = 0.0;
             
             if (pdip[1]) // If IR is enabled by dip switch
             {
-                impulse_out = mIR.Process(balanced_out) * 0.2;  
+                impulse_out = mIR.Process(balanced_out * dryMix + delay_out * wetMix) * 0.2;  
             } else {
-                impulse_out = balanced_out; 
+                impulse_out = balanced_out * dryMix + delay_out * wetMix; 
             }
             
             // Process Delay
-            delay_out = delay1.Process(impulse_out);  
-            float output = (impulse_out * dryMix + delay_out * wetMix) * vlevel *0.4; // 0.2 for level adjust
+            float output = impulse_out * vlevel * 0.4; // 0.4 for level adjust
             out[0][i] = output; // Mix amp out with delay/reverb;
             out[1][i] = output; // Mix amp out with delay/reverb;
 
@@ -378,7 +378,7 @@ int main(void)
     //verb.Init(samplerate);
 
     setupWeights();
-    hw.SetAudioBlockSize(48); 
+    hw.SetAudioBlockSize(48); // Up to 256 reduces stuttering when using 2 tap delay (due to processing)
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;
