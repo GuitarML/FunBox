@@ -77,7 +77,7 @@ void updateSwitch1()  // TODO: Tune these settings so that they make 3 ear pleas
         reverb->SetParameter(::Parameter2::LateDiffusionEnabled, 0.0);
         reverb->SetParameter(::Parameter2::LateDiffusionStages,  0.4);
 
-        reverb->SetParameter(::Parameter2::LateStageTap, 1.0);
+        reverb->SetParameter(::Parameter2::LateStageTap, 0.0);
         reverb->SetParameter(::Parameter2::Interpolation, 0.0);
 
         reverb->SetParameter(::Parameter2::LineCount, 1); 
@@ -85,9 +85,9 @@ void updateSwitch1()  // TODO: Tune these settings so that they make 3 ear pleas
     } else if (pswitch1[1] == true) {
 
         reverb->SetParameter(::Parameter2::LateDiffusionEnabled, 1.0);
-        reverb->SetParameter(::Parameter2::LateDiffusionStages, 0.2);
+        reverb->SetParameter(::Parameter2::LateDiffusionStages, 1.0);
 
-        reverb->SetParameter(::Parameter2::LateStageTap, 0.0);
+        reverb->SetParameter(::Parameter2::LateStageTap, 1.0);
         reverb->SetParameter(::Parameter2::Interpolation, 1.0);
 
         reverb->SetParameter(::Parameter2::LineCount, 2); 
@@ -95,10 +95,10 @@ void updateSwitch1()  // TODO: Tune these settings so that they make 3 ear pleas
     } else {
 
         reverb->SetParameter(::Parameter2::LateDiffusionEnabled, 1.0);
-        reverb->SetParameter(::Parameter2::LateDiffusionStages, 0.4);
+        reverb->SetParameter(::Parameter2::LateDiffusionStages, 0.2);
 
         reverb->SetParameter(::Parameter2::LateStageTap, 1.0);
-        reverb->SetParameter(::Parameter2::Interpolation, 1.0);
+        reverb->SetParameter(::Parameter2::Interpolation, 0.0);
 
         reverb->SetParameter(::Parameter2::LineCount, 2); 
 
@@ -112,14 +112,14 @@ void updateSwitch2()
     unsigned int irIndex = 0;
 
     if (pswitch2[0] == true) {
-        reverb->SetParameter(::Parameter2::LineModAmount, 0.0); // Range 0 to ~1
-        reverb->SetParameter(::Parameter2::LineModRate, 0.0); // Range 0 to ~1
+        reverb->SetParameter(::Parameter2::LineModAmount, 0.1); 
+        reverb->SetParameter(::Parameter2::LineModRate, 0.1);
     } else if (pswitch2[1] == true) {
-        reverb->SetParameter(::Parameter2::LineModAmount, 1.0); // Range 0 to ~1
-        reverb->SetParameter(::Parameter2::LineModRate, 1.0); // Range 0 to ~1
+        reverb->SetParameter(::Parameter2::LineModAmount, 0.9); 
+        reverb->SetParameter(::Parameter2::LineModRate, 0.6); 
     } else {
-        reverb->SetParameter(::Parameter2::LineModAmount, 0.5); // Range 0 to ~1
-        reverb->SetParameter(::Parameter2::LineModRate, 0.3); // Range 0 to ~1
+        reverb->SetParameter(::Parameter2::LineModAmount, 0.5); 
+        reverb->SetParameter(::Parameter2::LineModRate, 0.3); 
     }
 
 }
@@ -131,9 +131,9 @@ void updateSwitch3()
     if (pswitch3[0] == true) {
         reverb->SetParameter(::Parameter2::PreDelay, 0.0);
     } else if (pswitch3[1] == true) {
-        reverb->SetParameter(::Parameter2::PreDelay, 0.5);
+        reverb->SetParameter(::Parameter2::PreDelay, 0.2); // 200ms
     } else {
-        reverb->SetParameter(::Parameter2::PreDelay, 0.2);
+        reverb->SetParameter(::Parameter2::PreDelay, 0.1); // 100ms
     }
 }
 
@@ -285,7 +285,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
         if (knobMoved(prdecay, vrdecay) && !freeze && !release || force_reset == true) {
 
-            reverb->SetParameter(::Parameter2::LineDecay, (vrdecay)); // Range 0 to 1
+            reverb->SetParameter(::Parameter2::LineDecay, (vrdecay * 0.65 + 0.35)); // Range 0.35 to 1.0
             prdecay = vrdecay;
         }
     }
