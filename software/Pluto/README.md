@@ -20,8 +20,8 @@ Pluto is in active development, more features coming
 | Ctrl 5 | Looper A Modify | Modifies the current effect applied to loop A (or for Reverb, controls decay time) |
 | Ctrl 6 | Looper B Speed/Direction | Speed and direction of Loop B, -2x (reverse) to +2x speed, noon is 1x speed |  |
 | 3-Way Switch 1 | Looper A/B Speed mode | Left = smooth, Center=Stepped, Right= TBD |
-| 3-Way Switch 2 | Live effect select (controls what modify knobs do) | Left=Stability(adds jitter and noise), Center=Filter (LP to the left, HP to the right), Right=Reverb (stereo, ModA is decay, ModB is damping) |
-| 3-Way Switch 3 | Loop Record Mode | Left = normal, Center = One Time loop record, Right= Frippertronice (when recording, acts like a delay, applying a decay time to the loop) |
+| 3-Way Switch 2 | Live effect select (controls what modify knobs do) | Left=Stability(random variations in playback speed), Center=Filter (LP to the left, HP to the right), Right=Reverb (stereo, ModA is decay, ModB is damping) |
+| 3-Way Switch 3 | Loop Record Mode | Left = normal, Center = One Time loop record, Right= Frippertronics (when recording, acts like a delay, applying a decay time to the loop) |
 | Dip Switch 1 | MISO/Stereo | Miso only takes the left channel input, and treats each looper as independant. Stereo takes L/R input and treats loopers as connected when recording (Looper B footswitch is inactive in Stereo Mode) |
 | Dip Switch 2 | TBD | Want to add a Sync mode here, where the loop time for both A/B are equal |
 | FS 1 | Loop A control | Tap once to start recording loop, tap again to stop record and start playback. Double tap to pause loop. Hold to clear loop. Tap again to overdub. Currently no undo function. |

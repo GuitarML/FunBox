@@ -10,7 +10,7 @@ but more EQ controls are exposed to the user, specifically the post reverb low a
 | Ctrl 1 | Reverb Decay | Increases the decay time of the reverb, about 300ms to 60 seconds, exponential taper (noon is 2 seconds decay) |
 | Ctrl 2 | Low Shelf Frequency  | Log Taper 20Hz to 1000Hz, noon is about 200Hz |
 | Ctrl 3 | High Shelf Frequency  | Log Taper 400 Hz to 20000Hz, noon is about 4300Hz |
-| Ctrl 4 | Mix | Predelay, 0 to 1 second |
+| Ctrl 4 | Mix | Dry to Wet mix |
 | Ctrl 5 | Low Shelf Gain | Low shelf cut, from 100% cut to 0.0 gain at max knob  |
 | Ctrl 6 | High Shelf Gain | High shelf cut, from 100% cut to 0.0 gain at max knob |
 | 3-Way Switch 1 | Lush Level | Amount of "Lushness", low, medium, high |
