@@ -332,13 +332,13 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         } else if (vspeedA >= 0.45 && vspeedA <= 0.55) {  // Noon is 1x speed
             speed_inputA = 1.0;
         } else if (vspeedA >= 0.55 && vspeedA <= 0.7) {
-            speed_inputA = 1.25;
-        } else if (vspeedA >= 0.7 && vspeedA <= 0.8) {
             speed_inputA = 1.5;
-        } else if (vspeedA >= 0.8 && vspeedA <= 0.9) {
-            speed_inputA = 1.75;
-        } else {
+        } else if (vspeedA >= 0.7 && vspeedA <= 0.8) {
             speed_inputA = 2.0;
+        } else if (vspeedA >= 0.8 && vspeedA <= 0.9) {
+            speed_inputA = 2.5;
+        } else {
+            speed_inputA = 3.0;
         }
 
         if (speed_inputA < 0.0) {
@@ -389,13 +389,13 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         } else if (vspeedB >= 0.45 && vspeedB <= 0.55) {  // Noon is 1x speed
             speed_inputB = 1.0;
         } else if (vspeedB >= 0.55 && vspeedB <= 0.7) {
-            speed_inputB = 1.25;
-        } else if (vspeedB >= 0.7 && vspeedB <= 0.8) {
             speed_inputB = 1.5;
-        } else if (vspeedB >= 0.8 && vspeedB <= 0.9) {
-            speed_inputB = 1.75;
-        } else {
+        } else if (vspeedB >= 0.7 && vspeedB <= 0.8) {
             speed_inputB = 2.0;
+        } else if (vspeedB >= 0.8 && vspeedB <= 0.9) {
+            speed_inputB = 2.5;
+        } else {
+            speed_inputB = 3.0;
         }
 
         if (speed_inputB < 0.0) {

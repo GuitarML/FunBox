@@ -28,7 +28,7 @@ Pluto is in active development, more features coming
 | FS 2 | Loop B control | Same as Loop A |
 | LED 1 | Loop A Indicator | Pulses while recording, Solid while playback, blinking while paused. |
 | LED 2 | Loop B indicator | Same as Loop A|
-| Audio In 1 | Stereo (or MISO) |   |
+| Audio In 1 | Stereo (or MISO) | MISO will use 2 speparate loopers, and copy left channel output to right, Stereo will use 1 looper, and loop A is left channel, loop B is right channel |
 | Audio Out 1 | Stereo |  |
 
 
