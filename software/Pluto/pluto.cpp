@@ -439,20 +439,22 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
        float vfilterA = vmodA;
         // Set Filter Controls
         if (vfilterA <= 0.5) {
-            float filter_valueA = (vfilterA * 39800.0f) + 100.0f;
+            float filter_valueA = (vfilterA * vfilterA * vfilterA * 39800.0f) + 80.0f;
             toneA.SetFreq(filter_valueA);
         } else {
-            float filter_valueA = (vfilterA - 0.5) * 800.0f + 40.0f;
+            vfilterA = vfilterA - 0.5;
+            float filter_valueA = (vfilterA * vfilterA) * 500.0f + 40.0f;
             toneHPA.SetFreq(filter_valueA);
         }
 
         float vfilterB = vmodB;
         // Set Filter Controls
         if (vfilterB <= 0.5) {
-            float filter_valueB = (vfilterB * 39800.0f) + 100.0f;
+            float filter_valueB = (vfilterB * vfilterB * vfilterB *  39800.0f) + 80.0f;
             toneB.SetFreq(filter_valueB);
         } else {
-            float filter_valueB = (vfilterB - 0.5) * 800.0f + 40.0f;
+            vfilterB = vfilterB - 0.5;
+            float filter_valueB = (vfilterB  * vfilterB) * 500.0f + 40.0f;
             toneHPB.SetFreq(filter_valueB);
         }
     }
