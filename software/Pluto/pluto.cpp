@@ -51,8 +51,8 @@ Tone toneB;       // Low Pass
 ATone toneHPB;    // High Pass
 Balance balB;     // Balance for volume correction in filtering
 
-Jitter jitterA;
-Jitter jitterB;
+SmoothRandomGenerator smoothRandA;
+SmoothRandomGenerator smoothRandB;
 
 bool            bypass;
 
@@ -414,13 +414,9 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     // EFFECTS //
     if (pswitch2[0] == true) { // Center switch left
-        // Stability for loop A
-        jitterA.SetCpsMax(vmodA);  // 0 to 4/s
-        jitterA.SetAmp(vmodA);
 
-        // Stability for loop B
-        jitterB.SetCpsMax(vmodB);  // 0 to 4/s
-        jitterB.SetAmp(vmodB);
+        smoothRandA.SetFreq(vmodA*4);
+        smoothRandB.SetFreq(vmodB*4);
         
 
     } else if (pswitch2[1] == true) { // Center switch right
@@ -497,12 +493,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         } 
 
         if (pswitch2[0] == true) {    // Stability
-            // Set Stablility of Loops (hopefully it can keep up setting this for every sample based on Jitter)
-            float jitter_outA = jitterA.Process();// * 0.01; // TODO If this works fix scaling as needed
-            float jitter_outB = jitterB.Process();// * 0.01;           
+            // Set Stablility of Loops
 
-            looperA.SetIncrementSize(speed_inputAabs + jitter_outA);
-            looperB.SetIncrementSize(speed_inputBabs + jitter_outB);
+            looperA.SetIncrementSize(speed_inputAabs + smoothRandA.Process() * vmodA * 0.05);
+            looperB.SetIncrementSize(speed_inputBabs + smoothRandB.Process() * vmodB * 0.05);
         }
 
 
@@ -677,10 +671,9 @@ int main(void)
     toneHPB.Init(samplerate);
     balB.Init(samplerate);
 
-    jitterA.Init(samplerate);
-    jitterA.SetAmp(1.0);
-    jitterB.Init(samplerate);
-    jitterB.SetAmp(1.0);
+
+    smoothRandA.Init(samplerate);
+    smoothRandB.Init(samplerate);
     
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
