@@ -1,6 +1,19 @@
+#include <string.h>
 #include "daisy_petal.h"
 #include "daisysp.h"
 #include "funbox.h"
+
+
+#include <cmath>
+#include <complex>
+#include "shy_fft.h"
+
+#include "fourier.h"
+#include "wave.h"
+
+#define PI 3.1415926535897932384626433832795
+#define SR 48000
+//typedef float S; // sample type
 
 //
 // This is a template for creating a pedal on the GuitarML Funbox_v3/Daisy Seed platform.
@@ -13,10 +26,11 @@
 using namespace daisy;
 using namespace daisysp;
 using namespace funbox;  // This is important for mapping the correct controls to the Daisy Seed on Funbox PCB
+using namespace soundmath;
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-Parameter param1, param2, param3, param4, param5, param6;
+Parameter beta_param, thresh_param;//, param3, param4, param5, param6;
 
 
 bool            bypass;
@@ -26,6 +40,37 @@ int             switch1[2], switch2[2], switch3[2], dip[4];
 
 
 Led led1, led2;
+
+
+
+// convenient lookup tables
+Wave<float> hann([] (float phase) -> float { return 0.5 * (1 - cos(2 * PI * phase)); });
+Wave<float> halfhann([] (float phase) -> float { return sin(PI * phase); });
+
+//const size_t bsize = 256;
+
+//bool controls_processed = false;
+
+
+// 4 overlapping windows of size 2^12 = 4096
+// `N = 4096` and `laps = 4` (higher frequency resolution, greater latency), or when `N = 2048` and `laps = 8` (higher time resolution, less latency). 
+const size_t order = 12;
+const size_t N = (1 << order);
+const float sqrtN = sqrt(N);
+const size_t laps = 4;
+const size_t buffsize = 2 * laps * N; // size of the FFT, 32768
+
+// buffers for STFT processing
+// audio --> in --(fft)--> middle --(process)--> out --(ifft)--> in -->
+// each of these is a few circular buffers stacked end-to-end.
+float in[buffsize]; // buffers for input and output (from / to user audio callback)
+float middle[buffsize]; // buffers for unprocessed frequency domain data
+float out[buffsize]; // buffers for processed frequency domain data
+
+ShyFFT<float, N, RotationPhasor>* fft; // fft object
+Fourier<float, N>* stft; // stft object
+
+float beta, thresh;
 
 
 void updateSwitch1() // left=, center=, right=
@@ -147,16 +192,18 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateSwitches();
  
 
-    float vparam1 = param1.Process();
-    float vparam2 = param2.Process(); 
-    float vparam3 = param3.Process();
+    beta = beta_param.Process();
+    thresh = thresh_param.Process(); 
+    //float vparam3 = param3.Process();
 
-    float vparam4 = param4.Process();
-    float vparam5 = param5.Process();
-    float vparam6 = param6.Process();
+    //float vparam4 = param4.Process();
+    //float vparam5 = param5.Process();
+    //float vparam6 = param6.Process();
 
     // Handle Knob Changes Here
-
+    // flag to throttle control updates
+    //if (controls_processed)
+    //    controls_processed = false;
 
 
     for(size_t i = 0; i < size; i++)
@@ -173,21 +220,51 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         else
         {   
 
-            float inL = in[0][i];
-            float inR = in[1][i];
-
-
-            // Final mix
-            if (pdip[0] == false) {// Mono
-                //out[0][i] = (inL * dryMix + effectsL * wetMix) + (inL * dryMix + effectsR * wetMix) * vLevel / 2.0;
-                //out[1][i] = out[0][i];
-
-            } else { // MISO
-                //out[0][i] = (inL * dryMix + effectsL * wetMix) * vLevel;
-                //out[1][i] = (inL * dryMix + effectsR * wetMix) * vLevel;
-            }
+ 	    stft->write(in[0][i]); // put a new sample in the STFT
+	    out[0][i] = stft->read(); // read the next sample from the STFT
+	    out[1][i] = out[0][i]; // Mono processing for now
         }
     }
+}
+
+
+// Put any controls processing here, updated at 60Hz framerate
+//static void ProcessControls()
+//{
+//
+//}
+
+
+// shy_fft packs arrays as [real, real, real, ..., imag, imag, imag, ...]
+inline void denoise(const float* in, float* out)
+{
+	// convenient constant for grabbing imaginary parts
+	static const size_t offset = N / 2;
+
+	float average = 0;
+	for (size_t i = 0; i < N; i++)
+	{
+		out[i] = 0; 
+		average += in[i] * in[i];
+	}
+
+	average /= N;
+
+	for (size_t i = 0; i < N / 2; i++)
+	{
+		if ((in[i] * in[i] + in[i + offset] * in[i + offset]) < thresh * thresh * average)
+		{
+			// rescale the low-amplitude frequency bins by (1 - beta) ...
+			out[i] = (1 - beta) * in[i];
+			out[i + offset] = (1 - beta) * in[i + offset];
+		}
+		else
+		{
+			// ... and the high-amplitude ones by beta
+			out[i] = beta * in[i];
+			out[i + offset] = beta * in[i + offset];
+		}
+	}
 }
           
 
@@ -198,8 +275,10 @@ int main(void)
     hw.Init();
     samplerate = hw.AudioSampleRate();
 
-    hw.SetAudioBlockSize(48); 
+    hw.SetAudioBlockSize(256); // matching original code at 256, TODO test lower latency settings from note:
+    // `N = 4096` and `laps = 4` (higher frequency resolution, greater latency), or when `N = 2048` and `laps = 8` (higher time resolution, less latency). 
 
+           
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;
     switch2[0]= Funbox::SWITCH_2_LEFT;
@@ -223,12 +302,25 @@ int main(void)
     pdip[3]= false;
 
 
-    param1.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
-    param2.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
-    param3.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
-    param4.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::LINEAR);
-    param5.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
-    param6.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
+    beta_param.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
+    thresh_param.Init(hw.knob[Funbox::KNOB_2], 0.0f, 15.0f, Parameter::LINEAR);
+    //param3.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
+    //param4.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::LINEAR);
+    //param5.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
+    //param6.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
+
+
+    // initial parameters for denoise process
+    // if testing without hardware control, try changing these values
+    // beta = mix between high- and low-energy frequency bands
+    // thresh = cutoff for designation of a bin as high- or low-energy
+    beta = 1; 
+    thresh = 15;
+
+    // initialize FFT and STFT objects    
+    fft = new ShyFFT<float, N, RotationPhasor>();
+    fft->Init();
+    stft = new Fourier<float, N>(denoise, fft, &hann, laps, in, middle, out);
 
 
     // Init the LEDs and set activate bypass
@@ -244,6 +336,19 @@ int main(void)
     while(1)
     {
         // Do Stuff Infinitely Here
+	//if (!controls_processed)
+	//{
+	//    ProcessControls();
+	//    controls_processed = true;
+	//}
+
+	//System::DelayUs(16667); // 1/60 second // Matching original code, KAB Note - I like this idea
+
         System::Delay(10);
+
     }
+
+    delete stft;
+    delete fft;
+
 }
