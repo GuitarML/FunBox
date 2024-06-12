@@ -4,6 +4,7 @@
 #include <RTNeural/RTNeural.h>  // NOTE: Need to use older version of RTNeural, same as GuitarML/Seed
 #include "delayline_2tap.h"
 #include "ImpulseResponse/ImpulseResponse.h"
+#include "expressionHandler.h"
 
 
 // Model Weights (edit this file to add model weights trained with Colab script)
@@ -18,12 +19,12 @@ using namespace funbox;  // This is important for mapping the correct controls t
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-Parameter Gain, Level, Mix, filter, delayTime, delayFdbk;
+Parameter Gain, Level, Mix, filter, delayTime, delayFdbk, expression;
 bool            bypass;
 int             modelInSize;
 unsigned int    modelIndex;
-bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[2];
-int             switch1[2], switch2[2], switch3[2], dip[2];
+bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
+int             switch1[2], switch2[2], switch3[2], dip[4];
 float           nnLevelAdjust;
 int             indexMod;
 
@@ -41,6 +42,10 @@ Balance bal;     // Balance for volume correction in filtering
 // Impulse Response
 ImpulseResponse mIR;
 int   m_currentIRindex;
+
+// Expression
+ExpressionHandler expHandler;
+bool expression_pressed;
 
 
 // Delay Max Definitions (Assumes 48kHz samplerate)
@@ -163,18 +168,38 @@ void UpdateButtons()
     // Can only disable/enable amp when not in bypass mode
     if(hw.switches[Funbox::FOOTSWITCH_1].FallingEdge())
     {
+        if (!expression_pressed) {
+            //  Don't ever, for any reason, do anything to anyone for any reason ever, no matter what, no matter where, or who, or who you are with, or where you are going, or where you've been... ever, for any reason whatsoever...
+            bypass = !bypass;
+            led1.Set(bypass ? 0.0f : 1.0f);
 
-        bypass = !bypass;
-        led1.Set(bypass ? 0.0f : 1.0f);
+        }
+        expression_pressed = false;
     }
 
+    // Toggle Expression mode by holding down both footswitches for half a second
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 500 && !expression_pressed ) {
+        expHandler.ToggleExpressionSetMode();
 
-    // Toggle Alternate mode by holding down the left footswitch, if not already in alternate mode and not in bypass
-    //if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && !alternateMode && !bypass) {
-    //    alternateMode = true;
-    //    led1.Set(0.5f);  // Dim LED in alternate mode
-    //}
+        if (expHandler.isExpressionSetMode()) {
+            led1.Set(expHandler.returnLed1Brightness());  // Dim LEDs in expression set mode
+            led2.Set(expHandler.returnLed2Brightness());  // Dim LEDs in expression set mode
 
+        } else {
+            led1.Set(bypass ? 0.0f : 1.0f); 
+            led2.Set(0.0f);  
+        }
+        expression_pressed = true; // Keeps it from switching over and over while held
+
+    }
+
+    // Clear Expression settings by holding down both footswitches for 2 seconds
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 2000 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 2000) {
+        expHandler.Reset();
+        led1.Set(bypass ? 0.0f : 1.0f); 
+        led2.Set(0.0f); 
+
+    }
 
     led1.Update();
     led2.Update();
@@ -222,7 +247,7 @@ void UpdateSwitches()
         updateSwitch3();
 
     // Dip switches
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<4; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
             pdip[i] = hw.switches[dip[i]].Pressed();
             // Action for dipswitches handled in audio callback
@@ -246,19 +271,43 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     float delay_out;
 
-    // Get current knob parameters ////////////////////
-    float vgain = Gain.Process();
-    float vlevel = Level.Process(); 
-    float vmix = Mix.Process();
 
-    float vfilter = filter.Process();
-    float vdelayTime = delayTime.Process();
-    float vdelayFdbk = delayFdbk.Process();
+    // Knob and Expression Processing ////////////////////
 
-    // Mix or tone control (Tone is alternate)
+    float knobValues[6];
+    float newExpressionValues[6];
+
+    knobValues[0] = Gain.Process();
+    knobValues[1] = Mix.Process();
+    knobValues[2] = Level.Process(); 
+
+    knobValues[3] = filter.Process();
+    knobValues[4] = delayTime.Process();
+    knobValues[5] = delayFdbk.Process();
+
+    float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
+    //led2.Set(vexpression); // For testing
+    expHandler.Process(vexpression, knobValues, newExpressionValues);
 
 
-        // Set Filter Controls
+    // If in expression set mode, set LEDS accordingly
+    if (expHandler.isExpressionSetMode()) {
+        led1.Set(expHandler.returnLed1Brightness());
+        led2.Set(expHandler.returnLed2Brightness());
+    }
+  
+    float vgain = newExpressionValues[0];
+    float vmix = newExpressionValues[1];
+    float vlevel = newExpressionValues[2];
+    float vfilter = newExpressionValues[3];
+    float vdelayTime = newExpressionValues[4];
+    float vdelayFdbk = newExpressionValues[5];
+
+    //float vlevel = vexpression; // TESTING
+
+    // Mix and tone control
+
+    // Set Filter Controls
     if (vfilter <= 0.5) {
         float filter_value = (vfilter * 39800.0f) + 100.0f;
         tone.SetFreq(filter_value);
@@ -268,9 +317,9 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     }
 
 
-        // Calculate mix parameters
-        //    A cheap mostly energy constant crossfade from SignalSmith Blog
-        //    https://signalsmith-audio.co.uk/writing/2021/cheap-energy-crossfade/
+    // Calculate mix parameters
+    //    A cheap mostly energy constant crossfade from SignalSmith Blog
+    //    https://signalsmith-audio.co.uk/writing/2021/cheap-energy-crossfade/
     float x2 = 1.0 - vmix;
     float A = vmix*x2;
     float B = A * (1.0 + 1.4186 * A);
@@ -299,7 +348,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
 
     // Order of effects is:
-    //           Gain -> Neural Model -> Tone -> IR -> Delay ->
+    //           Gain -> Neural Model -> Tone -> Delay -> IR ->
     //
 
     for(size_t i = 0; i < size; i++)
@@ -325,6 +374,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             } else {
                 ampOut = input_arr[0];
             }
+
 
             // Process Tone
             float filter_in =  ampOut;
@@ -354,17 +404,12 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             
             // Process Delay
             float output = impulse_out * vlevel * 0.4; // 0.4 for level adjust
-            out[0][i] = output; // Mix amp out with delay/reverb;
-            out[1][i] = output; // Mix amp out with delay/reverb;
+            out[0][i] = output; 
+            out[1][i] = output;
 
         }
     }
 }
-
-    
-            
-
-
 
 
 
@@ -374,8 +419,6 @@ int main(void)
 
     hw.Init();
     samplerate = hw.AudioSampleRate();
-
-    //verb.Init(samplerate);
 
     setupWeights();
     hw.SetAudioBlockSize(48); // Up to 256 reduces stuttering when using 2 tap delay (due to processing)
@@ -388,6 +431,8 @@ int main(void)
     switch3[1]= Funbox::SWITCH_3_RIGHT;
     dip[0]= Funbox::SWITCH_DIP_1;
     dip[1]= Funbox::SWITCH_DIP_2;
+    dip[2]= Funbox::SWITCH_DIP_3;
+    dip[3]= Funbox::SWITCH_DIP_4;
 
     pswitch1[0]= true; // TODO I think by setting all these to true, will force loading the correct model/ir on booting the pedal - verify
     pswitch1[1]= true;
@@ -397,10 +442,9 @@ int main(void)
     pswitch3[1]= true;
     pdip[0]= true;
     pdip[1]= true;
+    pdip[2]= true;
+    pdip[3]= true;
 
-    //updateSwitch1();
-    //updateSwitch2();
-    //updateSwitch3();
 
     Gain.Init(hw.knob[Funbox::KNOB_1], 0.1f, 2.5f, Parameter::LINEAR);
     Mix.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
@@ -408,6 +452,7 @@ int main(void)
     filter.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::CUBE);
     delayTime.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     delayFdbk.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
+    expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); // TODO Make sure this is the correct way to reference expression
 
     // Initialize the correct model
     modelIndex = 0;
@@ -430,6 +475,10 @@ int main(void)
     delay1.delayTarget = 2400; // in samples
     delay1.feedback = 0.0;
     delay1.active = true;    
+
+    // Expression
+    expHandler.Init(6);
+    expression_pressed = false;
 
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);

@@ -27,7 +27,7 @@ namespace funbox
 				KNOB_4 = 1,
 				KNOB_5 = 3,
 				KNOB_6 = 5,
-                                EXPRESSION = 6 // On v3 board only
+                //EXPRESSION = 6 // On v3 board only
 			};
 			
 			enum LED
