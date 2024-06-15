@@ -31,11 +31,19 @@ Funbox v2 adds MIDI In/Out via two 1/8" TRS jacks and up to a 4 dip switch array
 
 CURRENTLY UNTESTED 
 
-## Funbox v3
+## Funbox v3.1
 
 Funbox v3 replaces the MIDI out jack from version 2 with an Expression Input jack. 
 Note: Since most Expresion pedals use 1/4" TRS cables, an adapter is required (Female 1/4" to Male 1/8" stereo adapter, or 1/4" to 1/8" TRS cable.)
 
 [Tayda Drill Template](https://drill.taydakits.com/box-designs/new?public_key=M3BDZTdRSmFWRkF4QXpQUzRORjIwQT09Cg==) (Same as version 2)
 
-CURRENTLY UNTESTED 
+VERIFIED WORKING
+
+Funbox v3 uses a 125B enclosure with the same features a version 1 with the following additions:
+- Midi Input from a 1/8 inch TRS jack
+- Expression Input from a 1/8 inch TRS jack
+- 4 Dipswitches
+
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_front.jpg)
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_inside.jpg)
