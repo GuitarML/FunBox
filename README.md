@@ -7,7 +7,7 @@ or use it as a starting place to design your own awesome pedal!
 
 **Work In Progress** Check back for updates!
 
-![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v1_front.jpg)
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_front.jpg)
 
 The resources included here allow you to build a guitar pedal with comparable features to commercial brands. 
 Soldering is required to build the hardware. Tayda drill templates are linked along with an Adobe Illustrator 
