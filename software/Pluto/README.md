@@ -31,5 +31,19 @@ Pluto is in active development, more features coming
 | Audio In 1 | Stereo (or MISO) | MISO will use 2 speparate loopers, and copy left channel output to right, Stereo will use 1 looper, and loop A is left channel, loop B is right channel |
 | Audio Out 1 | Stereo |  |
 
+<br>
+Expression Operation: NOTE THAT THIS IS DIFFERENT FROM OTHER PLANET PEDALS**<br>
+1. Plug in passive expression pedal into the 1/8" jack on the top left side of pedal. (will need a 1/4" female to 1/8" male TRS adapter)<br>
+2. Turn on Dipswitch 3 to enter Set Expression mode, both LEDs should light up, you are now in Set Expression mode.<br>
+3. Move the expression pedal into the heel position (up) and move any number of knobs to where you want to heel limit to be (for example you could turn Volume down). The right LED should be brighter up to indicate the heel position is ready to set.*<br>
+3. Move the expression pedal into the toe position (down) and move any number of knobs to where you want to toe limit to be (for example you could turn Volume up). The Left LED should be brighter to indicate the toe position is ready to set.*<br>
+4. Turn off Dipswitch 3 to exit Set Expression mode and enter Expression Active Mode. <br>
+5. Flip Dipswitch 3 on and move expression pedal into both up and down positions without turning any knobs. Flip Dipswitch 3 off to clear expression and give control back to knobs.
+
+<br>
+* Currently, the expression input requires the full range of the expression pedal, in order to detect Up/Down positions. You can sometimes trim the expression pedal to not use the full range, so adjust the trim as necessary.<br>
+  Also, some expression pedals have a "Standard" or "Alternate/Other" mode. Funbox should work on the "Standard" mode.<br>
+<br>
+** Since Pluto uses the footswitches for looper funtions, the third dip switch is used to enter/exit Set Expression mode. Flip dipswitch 3 without adjusting any knobs to clear expression settings.
 
 ## Build

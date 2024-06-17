@@ -3,6 +3,7 @@
 #include "varSpeedLooper.h"
 #include "funbox.h"
 #include "reverbsc96.h"
+#include "expressionHandler.h"
 
 //
 // This is a template for creating a pedal on the GuitarML Funbox_v1/Daisy Seed platform.
@@ -18,7 +19,7 @@ using namespace funbox;  // This is important for mapping the correct controls t
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-Parameter levelA, modA, levelB, speedA, modB, speedB;
+Parameter levelA, modA, levelB, speedA, modB, speedB, expression;
 
 // Looper Parameters
 #define MAX_SIZE (96000 * 60) // 1 minute of floats at 96 khz
@@ -56,11 +57,16 @@ SmoothRandomGenerator smoothRandB;
 
 bool            bypass;
 
-bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[2];
-int             switch1[2], switch2[2], switch3[2], dip[2];
+bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
+int             switch1[2], switch2[2], switch3[2], dip[4];
 
 
 Led led1, led2;
+
+
+// Expression
+ExpressionHandler expHandler;
+bool expression_pressed;
 
 
 void updateSwitch1() // left=, center=, right=
@@ -220,6 +226,25 @@ void UpdateButtons()
 
 }
 
+void setExpressionMode()  // Verify this only triggers when dipswitch changed
+{
+    if (pdip[2] == true) { 
+        if (!expHandler.isExpressionSetMode())
+            expHandler.ToggleExpressionSetMode();
+
+        led1.Set(expHandler.returnLed1Brightness());  // Dim LEDs in expression set mode
+        led2.Set(expHandler.returnLed2Brightness());  // Dim LEDs in expression set mode
+
+        expression_pressed = true; 
+
+    } else {       
+        if (expHandler.isExpressionSetMode())
+            expHandler.ToggleExpressionSetMode(); 
+
+        led1.Set(bypass ? 0.0f : 1.0f); 
+        led2.Set(0.0f);  
+    }
+}
 
 void UpdateSwitches()
 {
@@ -260,10 +285,11 @@ void UpdateSwitches()
         updateSwitch3();
 
     // Dip switches
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<4; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
             pdip[i] = hw.switches[dip[i]].Pressed();
             // Action for dipswitches handled in audio callback
+            setExpressionMode();
         }
     }
 
@@ -283,14 +309,37 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateButtons();
     UpdateSwitches();
 
+    // Knob and Expression Processing ////////////////////
 
-    float vlevelA = levelA.Process();
-    float vmodA = modA.Process(); 
-    float vlevelB = levelB.Process();
+    float knobValues[6];
+    float newExpressionValues[6];
 
-    float vspeedA = speedA.Process(); 
-    float vmodB = modB.Process();
-    float vspeedB = speedB.Process();
+    knobValues[0] = levelA.Process();
+    knobValues[1] = modA.Process(); 
+    knobValues[2] = levelB.Process();
+
+    knobValues[3] = speedA.Process(); 
+    knobValues[4] = modB.Process();
+    knobValues[5] = speedB.Process();
+
+    float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
+    expHandler.Process(vexpression, knobValues, newExpressionValues);
+
+
+    // If in expression set mode, set LEDS accordingly
+    if (expHandler.isExpressionSetMode()) {
+        led1.Set(expHandler.returnLed1Brightness());
+        led2.Set(expHandler.returnLed2Brightness());
+    }
+  
+
+    float vlevelA = newExpressionValues[0];
+    float vmodA = newExpressionValues[1];
+    float vlevelB = newExpressionValues[2];
+
+    float vspeedA = newExpressionValues[3];
+    float vmodB = newExpressionValues[4];
+    float vspeedB = newExpressionValues[5];
 
     // Handle Knob Changes Here
 
@@ -616,6 +665,8 @@ int main(void)
     switch3[1]= Funbox::SWITCH_3_RIGHT;
     dip[0]= Funbox::SWITCH_DIP_1;
     dip[1]= Funbox::SWITCH_DIP_2;
+    dip[2]= Funbox::SWITCH_DIP_3;
+    dip[3]= Funbox::SWITCH_DIP_4;
 
     pswitch1[0]= false;
     pswitch1[1]= false;
@@ -625,6 +676,8 @@ int main(void)
     pswitch3[1]= false;
     pdip[0]= false; // MISO or STEREO
     pdip[1]= false;
+    pdip[2]= false;
+    pdip[3]= false;
 
 
     levelA.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
@@ -633,6 +686,7 @@ int main(void)
     speedA.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::LINEAR);
     modB.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     speedB.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
+    expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
 
 
     looperA.Init(bufA, MAX_SIZE);
@@ -677,6 +731,11 @@ int main(void)
     smoothRandA.Init(samplerate);
     smoothRandB.Init(samplerate);
     
+
+    // Expression
+    expHandler.Init(6);
+    expression_pressed = false;
+
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
     led1.Update();

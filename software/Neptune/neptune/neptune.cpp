@@ -5,6 +5,7 @@
 #include "funbox.h"
 #include "delayline_reverse.h"
 #include "delayline_oct.h"
+#include "expressionHandler.h"
 
 #include "../CloudSeed/Default.h"
 #include "../CloudSeed/ReverbController.h"
@@ -18,7 +19,7 @@ using namespace funbox;
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-::daisy::Parameter rsize, modify, mix, filter, delayTime, delayFDBK;
+::daisy::Parameter rsize, modify, mix, filter, delayTime, delayFDBK, expression;
 bool      bypass;
 Led led1, led2;
 
@@ -49,11 +50,17 @@ float ramp;
 bool mode_changed;
 bool triggerMode;
 
-bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[2];
-int             switch1[2], switch2[2], switch3[2], dip[2];
+bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
+int             switch1[2], switch2[2], switch3[2], dip[4];
 
 // Initialize "previous" p values
 float psize, pmodify, pdelayTime, pmix;
+
+
+// Expression
+ExpressionHandler expHandler;
+bool expression_pressed;
+
 
 CloudSeed::ReverbController* reverb = 0;
 
@@ -208,25 +215,28 @@ void UpdateButtons()
     // (De-)Activate bypass and toggle LED when left footswitch is let go
     if(hw.switches[Funbox::FOOTSWITCH_1].FallingEdge())
     {
-        if (alternateMode) {
-            alternateMode = false;
-            force_reset = true; // force parameter reset to enforce current knob settings when leaving alternate mode
-            led1.Set(1.0f);
-        } else {
-            bypass = !bypass;
-            led1.Set(bypass ? 0.0f : 1.0f);
+        if(!expression_pressed) {
+            if (alternateMode) {
+                alternateMode = false;
+                force_reset = true; // force parameter reset to enforce current knob settings when leaving alternate mode
+                led1.Set(1.0f);
+            } else {
+                bypass = !bypass;
+                led1.Set(bypass ? 0.0f : 1.0f);
+            }
         }
-    }
+        expression_pressed = false; // TODO Verify if the switch holding for expression interferes with Bypass/Freeze/Alternate functionality
+    } 
 
     // Toggle Alternate mode by holding down the left footswitch, if not already in alternate mode and not in bypass
-    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && !alternateMode && !bypass && !freeze) {
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && !alternateMode && !bypass && !freeze  && !hw.switches[Funbox::FOOTSWITCH_2].Pressed()) {
         alternateMode = true;
         led1.Set(0.5f);  // Dim LED in alternate mode
     }
 
 
     // If switch2 is pressed, freeze the current delay by not applying new delay and setting feedback to 1.0, set to false by default
-    if(hw.switches[Funbox::FOOTSWITCH_2].RisingEdge())
+    if(hw.switches[Funbox::FOOTSWITCH_2].RisingEdge() && !hw.switches[Funbox::FOOTSWITCH_1].Pressed())
     {
         // Apply freeze
         reverb->SetParameter(::Parameter2::LineDecay, 1.1); // Set to max feedback/decay (~60 seconds)  TODO: Try setting greater than 1
@@ -245,6 +255,33 @@ void UpdateButtons()
         float vsize = rsize.Process();
         reverb->SetParameter(::Parameter2::LineDecay, vsize / 4.0); // Set to max feedback/decay (~60 seconds)
     }
+
+
+    // Toggle Expression mode by holding down both footswitches for half a second
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 500 && !expression_pressed ) {
+        expHandler.ToggleExpressionSetMode();
+
+        if (expHandler.isExpressionSetMode()) {
+            led1.Set(expHandler.returnLed1Brightness());  // Dim LEDs in expression set mode
+            led2.Set(expHandler.returnLed2Brightness());  // Dim LEDs in expression set mode
+
+        } else {
+            led1.Set(bypass ? 0.0f : 1.0f); 
+            led2.Set(0.0f);  
+        }
+        expression_pressed = true; // Keeps it from switching over and over while held
+
+    }
+
+    // Clear Expression settings by holding down both footswitches for 2 seconds
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 2000 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 2000) {
+        expHandler.Reset();
+        led1.Set(bypass ? 0.0f : 1.0f); 
+        led2.Set(0.0f); 
+
+    }
+
+
 }
 
 
@@ -268,11 +305,11 @@ void UpdateSwitches()
 
 
     // 3-way Switch 2
-    bool changed2 = false;
+    //bool changed2 = false;
     for(int i=0; i<2; i++) {
         if (hw.switches[switch2[i]].Pressed() != pswitch2[i]) {
             pswitch2[i] = hw.switches[switch2[i]].Pressed();
-            changed2 = true;
+            //changed2 = true;
         }
     }
     //if (changed2) 
@@ -290,7 +327,7 @@ void UpdateSwitches()
         updateSwitch3();
 
     // Dip switches
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<4; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
             pdip[i] = hw.switches[dip[i]].Pressed();
             // Action for dipswitches handled in audio callback
@@ -323,14 +360,37 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateButtons();
     UpdateSwitches();
 
-    float vsize = rsize.Process();
-    float vmodify = modify.Process();
 
-    float vmix = mix.Process();
-    float vfilter = filter.Process();
+    // Knob and Expression Processing ////////////////////
 
-    float vdelayTime = delayTime.Process();
-    float vdelayFDBK = delayFDBK.Process();
+    float knobValues[6];
+    float newExpressionValues[6];
+
+    knobValues[0] = rsize.Process();
+    knobValues[1] = mix.Process();
+    knobValues[2] = delayTime.Process();
+
+    knobValues[3] = modify.Process();
+    knobValues[4] = filter.Process();
+    knobValues[5] = delayFDBK.Process();
+
+    float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
+    expHandler.Process(vexpression, knobValues, newExpressionValues);
+
+
+    // If in expression set mode, set LEDS accordingly
+    if (expHandler.isExpressionSetMode()) {
+        led1.Set(expHandler.returnLed1Brightness());
+        led2.Set(expHandler.returnLed2Brightness());
+    }
+  
+
+    float vsize = newExpressionValues[0];
+    float vmix = newExpressionValues[1];
+    float vdelayTime = newExpressionValues[2];
+    float vmodify = newExpressionValues[3];
+    float vfilter = newExpressionValues[4];
+    float vdelayFDBK = newExpressionValues[5];
 
 
     if (pmix != vmix || force_reset == true) {
@@ -399,7 +459,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     // Set Reverb Parameters ///////////////
     if ((psize != vsize) || force_reset == true)
     {
-        if (!alternateMode && !freeze && !release) {
+        if ((!alternateMode && !freeze && !release) || force_reset == true) {
 
             if (pswitch1[0] == true) {  // Chorus
                 reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
@@ -558,7 +618,7 @@ int main(void)
 
     mix.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
     filter.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, ::daisy::Parameter::CUBE);
-
+    expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
 
     // Alternate Parameters
     alternateMode = false;
@@ -614,6 +674,8 @@ int main(void)
     switch3[1]= Funbox::SWITCH_3_RIGHT;
     dip[0]= Funbox::SWITCH_DIP_1;
     dip[1]= Funbox::SWITCH_DIP_2;
+    dip[2]= Funbox::SWITCH_DIP_3;
+    dip[3]= Funbox::SWITCH_DIP_4;
 
     pswitch1[0]= false;
     pswitch1[1]= false;
@@ -623,6 +685,12 @@ int main(void)
     pswitch3[1]= false;
     pdip[0]= false;
     pdip[1]= false;
+    pdip[2]= false;
+    pdip[3]= false;
+
+    // Expression
+    expHandler.Init(6);
+    expression_pressed = false;
 
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);

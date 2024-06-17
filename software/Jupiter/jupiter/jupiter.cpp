@@ -3,6 +3,7 @@
 #include "daisy_petal.h"
 #include "daisysp.h"
 #include "funbox.h"
+#include "expressionHandler.h"
 
 #include "../CloudSeed/Default.h"
 #include "../CloudSeed/ReverbController.h"
@@ -16,7 +17,7 @@ using namespace funbox;
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-::daisy::Parameter rdecay, mix, lowfreq, lowshelf, highfreq, highshelf;
+::daisy::Parameter rdecay, mix, lowfreq, lowshelf, highfreq, highshelf, expression;
 bool      bypass;
 Led led1, led2;
 
@@ -30,10 +31,14 @@ int release_counter;
 
 bool freeze;
 
+// Expression
+ExpressionHandler expHandler;
+bool expression_pressed;
 
 
-bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[2];
-int             switch1[2], switch2[2], switch3[2], dip[2];
+
+bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
+int             switch1[2], switch2[2], switch3[2], dip[4];
 
 // Initialize "previous" p values
 float prdecay, plowfreq, plowshelf, pmix, phighfreq, phighshelf;
@@ -109,7 +114,6 @@ void updateSwitch1()  // TODO: Tune these settings so that they make 3 ear pleas
 
 void updateSwitch2() 
 {
-    unsigned int irIndex = 0;
 
     if (pswitch2[0] == true) {
         reverb->SetParameter(::Parameter2::LineModAmount, 0.1); 
@@ -143,14 +147,15 @@ void UpdateButtons()
     // (De-)Activate bypass and toggle LED when left footswitch is let go
     if(hw.switches[Funbox::FOOTSWITCH_1].FallingEdge())
     {
-        bypass = !bypass;
-        led1.Set(bypass ? 0.0f : 1.0f);
+        if (!expression_pressed) { // This keeps the pedal from switching bypass when entering/leaving Set Expression mode
+            bypass = !bypass;
+            led1.Set(bypass ? 0.0f : 1.0f);
+
+        }
+        expression_pressed = false;
     }
 
-    // Toggle Alternate mode by holding down the left footswitch, if not already in alternate mode and not in bypass
-    //if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && !bypass && !freeze) {
 
-    //}
 
 
     // If switch2 is pressed, freeze the current delay by not applying new delay and setting feedback to 1.0, set to false by default
@@ -173,6 +178,33 @@ void UpdateButtons()
         float vrdecay = rdecay.Process();
         reverb->SetParameter(::Parameter2::LineDecay, vrdecay / 4.0); // Set to max feedback/rdecay (~60 seconds)
     }
+
+
+    // Toggle Expression mode by holding down both footswitches for half a second
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 500 && !expression_pressed ) {
+        expHandler.ToggleExpressionSetMode();
+
+        if (expHandler.isExpressionSetMode()) {
+            led1.Set(expHandler.returnLed1Brightness());  // Dim LEDs in expression set mode
+            led2.Set(expHandler.returnLed2Brightness());  // Dim LEDs in expression set mode
+
+        } else {
+            led1.Set(bypass ? 0.0f : 1.0f); 
+            led2.Set(0.0f);  
+        }
+        expression_pressed = true; // Keeps it from switching over and over while held
+
+    }
+
+    // Clear Expression settings by holding down both footswitches for 2 seconds
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 2000 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 2000) {
+        expHandler.Reset();
+        led1.Set(bypass ? 0.0f : 1.0f); 
+        led2.Set(0.0f); 
+
+    }
+
+
 }
 
 
@@ -215,7 +247,7 @@ void UpdateSwitches()
 
 
     // Dip switches
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<4; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
             pdip[i] = hw.switches[dip[i]].Pressed();
             // Action for dipswitches handled in audio callback
@@ -241,14 +273,37 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateButtons();
     UpdateSwitches();
 
-    float vrdecay = rdecay.Process();
-    float vmix = mix.Process();
-    
-    float vlowfreq = lowfreq.Process();
-    float vlowshelf = lowshelf.Process();
 
-    float vhighfreq = highfreq.Process();
-    float vhighshelf = highshelf.Process();
+    // Knob and Expression Processing ////////////////////
+
+    float knobValues[6];
+    float newExpressionValues[6];
+
+    knobValues[0] = rdecay.Process();
+    knobValues[1] = lowfreq.Process();
+    knobValues[2] = highfreq.Process();
+
+    knobValues[3] = mix.Process();
+    knobValues[4] = lowshelf.Process();
+    knobValues[5] = highshelf.Process();
+
+    float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
+    expHandler.Process(vexpression, knobValues, newExpressionValues);
+
+
+    // If in expression set mode, set LEDS accordingly
+    if (expHandler.isExpressionSetMode()) {
+        led1.Set(expHandler.returnLed1Brightness());
+        led2.Set(expHandler.returnLed2Brightness());
+    }
+  
+
+    float vrdecay = newExpressionValues[0];
+    float vlowfreq = newExpressionValues[1];
+    float vhighfreq = newExpressionValues[2];
+    float vmix = newExpressionValues[3];
+    float vlowshelf = newExpressionValues[4];
+    float vhighshelf = newExpressionValues[5];
 
 
     if (pmix != vmix || force_reset == true) {
@@ -283,7 +338,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     if ((prdecay != vrdecay || force_reset == true)) // Force reset to apply knob params when switching reverb modes
     {
 
-        if (knobMoved(prdecay, vrdecay) && !freeze && !release || force_reset == true) {
+        if ((knobMoved(prdecay, vrdecay) && !freeze && !release) || force_reset == true) {
 
             reverb->SetParameter(::Parameter2::LineDecay, (vrdecay * 0.65 + 0.35)); // Range 0.35 to 1.0
             prdecay = vrdecay;
@@ -362,7 +417,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
 
             reverb->Process(inL, inR, outL, outR, 1); 
-
+            // Bears. Beets. Battlestar Galactica.
             out[0][i] = inputL * dryMix + outL[0] * wetMix;
             out[1][i] = inputR * dryMix + outR[0] * wetMix;
 
@@ -413,6 +468,7 @@ int main(void)
     mix.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
     lowshelf.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
     highshelf.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
+    expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
 
 
     pmix = 0.5;
@@ -435,8 +491,8 @@ int main(void)
     switch3[1]= Funbox::SWITCH_3_RIGHT;
     dip[0]= Funbox::SWITCH_DIP_1;
     dip[1]= Funbox::SWITCH_DIP_2;
-    //dip[2]= Funbox::SWITCH_DIP_3;
-    //dip[3]= Funbox::SWITCH_DIP_4;
+    dip[2]= Funbox::SWITCH_DIP_3;
+    dip[3]= Funbox::SWITCH_DIP_4;
 
     pswitch1[0]= false;
     pswitch1[1]= false;
@@ -446,8 +502,12 @@ int main(void)
     pswitch3[1]= false;
     pdip[0]= false;
     pdip[1]= false;
-    //pdip[2]= false;
-    //pdip[3]= false;
+    pdip[2]= false;
+    pdip[3]= false;
+
+    // Expression
+    expHandler.Init(6);
+    expression_pressed = false;
 
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
