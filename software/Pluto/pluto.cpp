@@ -41,6 +41,8 @@ bool            checkDoubleTapB;
 bool            pausePlaybackB;
 float           currentSpeedB;
 
+bool isPlaybackA, isPlaybackB;
+
 // Reverb
 ReverbSc96        verb;  // Minor change to ReverbSc to use 96kHz default samplerate
 
@@ -122,8 +124,10 @@ void UpdateButtons()
     {
         if (!pausePlaybackA) {
             looperA.TrigRecord();
+            isPlaybackA = false;
             if (!looperA.Recording()) {  // Turn on LED if not recording and in playback
                 led1.Set(1.0f);
+                isPlaybackA = true;
             }
          
         }
@@ -178,8 +182,10 @@ void UpdateButtons()
     {
         if (!pausePlaybackB) {
             looperB.TrigRecord();
+            isPlaybackB = false;
             if (!looperB.Recording()) {  // Turn on LED if not recording and in playback
                 led2.Set(1.0f);
+                isPlaybackB = true;
             }
          
         }
@@ -241,8 +247,8 @@ void setExpressionMode()  // Verify this only triggers when dipswitch changed
         if (expHandler.isExpressionSetMode())
             expHandler.ToggleExpressionSetMode(); 
 
-        led1.Set(bypass ? 0.0f : 1.0f); 
-        led2.Set(0.0f);  
+        led1.Set(isPlaybackA); // Set LED to on if loopers are in playback mode
+        led2.Set(isPlaybackB);  
     }
 }
 
@@ -712,6 +718,7 @@ int main(void)
     ledBrightnessB = 0.0;
     pausePlaybackB = false;
     currentSpeedB = 1.0;
+    isPlaybackA = isPlaybackB = false;
 
     led_oscB.Init(samplerate);
     led_oscB.SetFreq(1.5);
