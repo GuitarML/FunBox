@@ -61,6 +61,7 @@ bool            bypass;
 
 bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
 int             switch1[2], switch2[2], switch3[2], dip[4];
+int  switch1_action, switch2_action, switch3_action; // 0=left, 1=center, 2=right ; This is to aid midi control vs switch logic
 
 
 Led led1, led2;
@@ -69,45 +70,63 @@ Led led1, led2;
 // Expression
 ExpressionHandler expHandler;
 bool expression_pressed;
+float knobValues[6];
+float pknobValues[6];
+
+// Midi
+bool midi_control[16]; // knobs 0-5, expression 6, switches 7-15 (three for each switch, first is true/false under midi control, second and third are switch values)
+
+bool knobMoved(float old_value, float new_value)
+{
+    float tolerance = 0.005;
+    if (new_value > (old_value + tolerance) || new_value < (old_value - tolerance)) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 
 void updateSwitch1() // left=, center=, right=
 {
-    if (pswitch1[0] == true) {  // left
+    if ((pswitch1[0] == true && !midi_control[7]) || ( midi_control[7] && midi_control[8] == true)) {  // left
+        switch1_action = 0;
 
-    } else if (pswitch1[1] == true) {  // right
-
+    } else if ((pswitch1[1] == true && !midi_control[7]) || ( midi_control[7] && midi_control[9] == true)) {  // right
+        switch1_action = 2;
 
     } else {   // center
-
+        switch1_action = 1;
     }      
 }
 
 void updateSwitch2() // left=, center=, right=
 {
-    if (pswitch2[0] == true) {  // left
-
-    } else if (pswitch2[1] == true) {  // right
-
+    if ((pswitch2[0] == true && !midi_control[10]) || ( midi_control[10] && midi_control[11] == true)) {  // left
+        switch2_action = 0;
+    } else if ((pswitch2[1] == true && !midi_control[10]) || ( midi_control[10] && midi_control[12] == true)) {  // right
+        switch2_action = 2;
 
     } else {   // center
-
+        switch2_action = 1;
     }    
 }
 
 
 void updateSwitch3() // left=, center=, right=
 {
-    if (pswitch3[0] == true) {  // left
+    if ((pswitch3[0] == true && !midi_control[13]) || ( midi_control[13] && midi_control[14] == true)) {  // left
+        switch3_action = 0;
         looperA.SetMode(varSpeedLooper::Mode::NORMAL);
         looperB.SetMode(varSpeedLooper::Mode::NORMAL);
 
-    } else if (pswitch3[1] == true) {  // right
-
+    } else if ((pswitch3[1] == true && !midi_control[13]) || ( midi_control[13] && midi_control[15] == true)) {  // right
+        switch3_action = 2;
         looperA.SetMode(varSpeedLooper::Mode::FRIPPERTRONICS);
         looperB.SetMode(varSpeedLooper::Mode::FRIPPERTRONICS);
 
     } else {   // center
+        switch3_action = 1;
         looperA.SetMode(varSpeedLooper::Mode::ONETIME_DUB);
         looperB.SetMode(varSpeedLooper::Mode::ONETIME_DUB);
 
@@ -264,9 +283,10 @@ void UpdateSwitches()
             changed1 = true;
         }
     }
-    if (changed1) 
+    if (changed1) {
         updateSwitch1();
-    
+        midi_control[7] = false;
+    }
 
     // 3-way Switch 2
     bool changed2 = false;
@@ -276,8 +296,10 @@ void UpdateSwitches()
             changed2 = true;
         }
     }
-    if (changed2) 
+    if (changed2) {
         updateSwitch2();
+        midi_control[10] = false;
+    }
 
     // 3-way Switch 3
     bool changed3 = false;
@@ -287,8 +309,10 @@ void UpdateSwitches()
             changed3 = true;
         }
     }
-    if (changed3) 
+    if (changed3) {
         updateSwitch3();
+        midi_control[13] = false;
+    }
 
     // Dip switches
     for(int i=0; i<4; i++) {
@@ -315,21 +339,62 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateButtons();
     UpdateSwitches();
 
-    // Knob and Expression Processing ////////////////////
+    // Knob, MIDI, and Expression Processing ////////////////////
 
-    float knobValues[6];
+    //float knobValues[6]; // moved to global
     float newExpressionValues[6];
 
-    knobValues[0] = levelA.Process();
-    knobValues[1] = modA.Process(); 
-    knobValues[2] = levelB.Process();
+    // Knob 1
+    if (!midi_control[0])   // If not under midi control, use knob ADC
+        pknobValues[0] = knobValues[0] = levelA.Process();
+    else if (knobMoved(pknobValues[0], levelA.Process()))  // If midi controlled, watch for knob movement to end Midi control
+        midi_control[0] = false;
 
-    knobValues[3] = speedA.Process(); 
-    knobValues[4] = modB.Process();
-    knobValues[5] = speedB.Process();
+    // Knob 2
+    if (!midi_control[1])   // If not under midi control, use knob ADC
+        pknobValues[1] = knobValues[1] = modA.Process();
+    else if (knobMoved(pknobValues[1], modA.Process()))  // If midi controlled, watch for knob movement to end Midi control
+        midi_control[1] = false;
 
-    float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
-    expHandler.Process(vexpression, knobValues, newExpressionValues);
+    // Knob 3
+    if (!midi_control[2])   // If not under midi control, use knob ADC
+        pknobValues[2] = knobValues[2] = levelB.Process();
+    else if (knobMoved(pknobValues[2], levelB.Process()))  // If midi controlled, watch for knob movement to end Midi control
+        midi_control[2] = false;
+
+    // Knob 4
+    if (!midi_control[3])   // If not under midi control, use knob ADC
+        pknobValues[3] = knobValues[3] = speedA.Process();
+    else if (knobMoved(pknobValues[3], speedA.Process()))  // If midi controlled, watch for knob movement to end Midi control
+        midi_control[3] = false;
+    
+
+    // Knob 5
+    if (!midi_control[4])   // If not under midi control, use knob ADC
+        pknobValues[4] = knobValues[4] = modB.Process();
+    else if (knobMoved(pknobValues[4], modB.Process()))  // If midi controlled, watch for knob movement to end Midi control
+        midi_control[4] = false;
+    
+
+    // Knob 6
+    if (!midi_control[5])   // If not under midi control, use knob ADC
+        pknobValues[5] = knobValues[5] = speedB.Process();
+    else if (knobMoved(pknobValues[5], speedB.Process()))  // If midi controlled, watch for knob movement to end Midi control
+        midi_control[5] = false;
+    
+
+
+    // Expression  // TODO Not working, need to fix logic
+    if (!midi_control[6])   // If not under midi control, use expression pedal input
+        pknobValues[6] = expression.Process();
+     else if (knobMoved(pknobValues[6], expression.Process()))  // If midi controlled, watch for knob movement to end Midi control
+        midi_control[6] = false;
+    
+
+    //float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
+    //expHandler.Process(vexpression, knobValues, newExpressionValues);
+
+    expHandler.Process(pknobValues[6], knobValues, newExpressionValues);
 
 
     // If in expression set mode, set LEDS accordingly
@@ -354,26 +419,22 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float speed_inputA = 0.0;
     float speed_inputAabs = 0.0;
 
-    if (pswitch1[0] == true) { // Switch1 left = smooth
+
+    // If switch1 in left position and not under midi control, or under midi control and set accordingly
+    if (switch1_action == 0) { // Switch1 left = smooth
 
         if (vspeedA <= 0.5) {
             speed_inputA = vspeedA * 6.0 - 2.0; // maps 0 to 0.5 control to -2x to 1x speed
-            //speed_inputAabs = abs(speed_inputA);
+
         } else {
             speed_inputA = vspeedA * 2.0;  // maps 0.5 to 1.0 control to 1x to 2x speed
-            //speed_inputAabs = abs(speed_inputA);
 
         }
 
 
-        //if (speed_inputA < 0.0) {
-        //    looperA.SetReverse(true);
-        //} else {
-        //    looperA.SetReverse(false);
-        //}
-    } else if (pswitch1[1] == true) { // Switch1 right = random TODO
+    } else if (switch1_action == 2) { // Switch1 right = random TODO
 
-    } else {                        // Switch1 center = stepped
+    } else {                        // Switch1 center = stepped  // TODO Verify that I don't need some kind of midi check here
         if (vspeedA < 0.05) {
             speed_inputA = -2.0;
         } else if (vspeedA >= 0.05 && vspeedA <= 0.15) {
@@ -413,22 +474,16 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float speed_inputBabs = 0.0;
 
     // TODO At some point combine the logic of using pswitch1 for both loopers
-    if (pswitch1[0] == true) { // Switch3 left = smooth
+    if (switch1_action == 0) { // Switch3 left = smooth
         if (vspeedB <= 0.5) {
             speed_inputB = vspeedB * 6.0 - 2.0; // maps 0 to 0.5 control to -2x to 1x speed
-            //speed_inputBabs = abs(speed_inputB);
+
         } else {
             speed_inputB = vspeedB * 2.0;  // maps 0.5 to 1.0 control to 1x to 2x speed
-            //speed_inputBabs = abs(speed_inputB);
+
         }
 
-
-        //if (speed_inputB < 0.0) {
-        //    looperB.SetReverse(true);
-        //} else {
-        //    looperB.SetReverse(false);
-        //}
-    } else if (pswitch1[1] == true) { // Switch3 right = random TODO
+    } else if (switch1_action == 2) { // Switch3 right = random TODO
 
     } else {                        // Switch3 center = stepped
         if (vspeedB < 0.05) {
@@ -468,13 +523,13 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
 
     // EFFECTS //
-    if (pswitch2[0] == true) { // Center switch left
+    if (switch2_action == 0) { // Center switch left
 
         smoothRandA.SetFreq(vmodA*4);
         smoothRandB.SetFreq(vmodB*4);
         
 
-    } else if (pswitch2[1] == true) { // Center switch right
+    } else if (switch2_action == 2) { // Center switch right
         float vReverbTime = vmodA;
         if (vReverbTime < 0.01) { // if knob < 1%, set reverb to 0
             verb.SetFeedback(0.0);
@@ -523,7 +578,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         ledBrightnessB = led_oscB.Process();
 
         // Handle smooth speed knob transitions
-        if (pswitch1[0] == true) { // Switch1 left = smooth
+        if (switch1_action == 0) { // Switch1 left = smooth
             // Smooth out Looper A transitions
             fonepole(currentSpeedA, speed_inputA, .00006f); 
 
@@ -549,7 +604,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
         } 
 
-        if (pswitch2[0] == true) {    // Stability
+        if (switch2_action == 0) {    // Stability
             // Set Stablility of Loops
 
             looperA.SetIncrementSize(speed_inputAabs + smoothRandA.Process() * vmodA * 0.05);
@@ -581,12 +636,12 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
         wetl = wetr = 0.0;
 
-        if (pswitch2[1] == true) {  // Reverb
+        if (switch2_action == 2) {  // Reverb
             sendl = loop_outA;
             sendr = loop_outB;
             verb.Process(sendl, sendr, &wetl, &wetr);
 
-        } else if (pswitch2[0] == false && pswitch2[1] == false) {                 // Filter
+        } else if (switch2_action == 1) {                 // Filter
             // Process Tone
             float filter_inA =  loop_outA;
             float filter_outA;
@@ -649,7 +704,118 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     led1.Update();
     led2.Update();
 }
-          
+
+// Typical Switch case for Message Type.
+void HandleMidiMessage(MidiEvent m)
+{
+    switch(m.type)
+    {
+        case NoteOn:
+        {
+ 
+            led2.Set(1.0); // TODO Simple test to see if midi note is detected
+            led2.Update();
+            NoteOnEvent p = m.AsNoteOn();
+            // This is to avoid Max/MSP Note outs for now..
+            if(m.data[1] != 0)
+            {
+                p = m.AsNoteOn();
+                // Do stuff with the midi Note/Velocity info here
+                //osc.SetFreq(mtof(p.note));
+                //osc.SetAmp((p.velocity / 127.0f));
+            }
+        }
+        break;
+        case ControlChange:
+        {
+
+            ControlChangeEvent p = m.AsControlChange();
+            switch(p.control_number)
+            {
+                case 14:
+                    midi_control[0] = true;
+                    knobValues[0] = ((float)p.value / 127.0f);
+                    break;
+                case 15:
+                    midi_control[1] = true;
+                    knobValues[1] = ((float)p.value / 127.0f);
+                    break;
+                case 16:
+                    midi_control[2] = true;
+                    knobValues[2] = ((float)p.value / 127.0f);
+                    break;
+                case 17:
+                    midi_control[3] = true;
+                    knobValues[3] = ((float)p.value / 127.0f);
+                    break;
+                case 18:
+                    midi_control[4] = true;
+                    knobValues[4] = ((float)p.value / 127.0f);
+                    break;
+                case 19:
+                    midi_control[5] = true;
+                    knobValues[5] = ((float)p.value / 127.0f);
+                    break;
+
+                case 21:  // TODO Switch1 not working over Midi, fix
+                    midi_control[7] = true;
+                    if (p.value == 0 || p.value == 1) {
+                        midi_control[8] = true;
+                        midi_control[9] = false;
+                    } else if (p.value == 2) {
+                        midi_control[8] = false;
+                        midi_control[9] = false;
+                    } else {
+                        midi_control[8] = false;
+                        midi_control[9] = true;
+                    }
+                    updateSwitch1();
+                    break;
+
+                case 22:
+                    midi_control[10] = true;
+                    if (p.value == 0 || p.value == 1) {
+                        midi_control[11] = true;
+                        midi_control[12] = false;
+                    } else if (p.value == 2) {
+                        midi_control[11] = false;
+                        midi_control[12] = false;
+                    } else {
+                        midi_control[11] = false;
+                        midi_control[12] = true;
+                    }
+                    updateSwitch2();
+                    break;
+
+                case 23:
+                    midi_control[13] = true;
+                    if (p.value == 0 || p.value == 1) {
+                        midi_control[14] = true;
+                        midi_control[15] = false;
+                    } else if (p.value == 2) {
+                        midi_control[14] = false;
+                        midi_control[15] = false;
+                    } else {
+                        midi_control[14] = false;
+                        midi_control[15] = true;
+                    }
+                    updateSwitch3();
+                    break;
+
+
+                case 100:
+                    midi_control[6] = true;
+                    knobValues[6] = ((float)p.value / 127.0f);
+                    break;
+
+                default: break;
+            }
+            break;
+        }
+        default: break;
+    }
+}
+
 
 int main(void)
 {
@@ -684,7 +850,7 @@ int main(void)
     pdip[1]= false;
     pdip[2]= false;
     pdip[3]= false;
-
+    //switch1_action = switch2_action = switch3_action = 0;
 
     levelA.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
     modA.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
@@ -743,6 +909,13 @@ int main(void)
     expHandler.Init(6);
     expression_pressed = false;
 
+    // Midi
+    for( int i = 0; i < 16; ++i ) 
+        midi_control[i] = false;  // Is this needed? or does it default to false
+    // index for midi_control: 0-5 knobs, 6 expression, 7-9 switch1, 10-12 switch2, 13-15 switch 3
+    //                         TODO Dipswitches over midi 16-17 Dip1, 17-18 Dip2, 19-20 Dip3, 21-22 Dip4,
+    //                         TODO figure out looper action for footswitches over midi
+
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
     led1.Update();
@@ -751,11 +924,18 @@ int main(void)
     led2.Init(hw.seed.GetPin(Funbox::LED_2),false);
     led2.Update();
 
+    hw.InitMidi();
+    hw.midi.StartReceive();
+
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
     while(1)
     {
-        // Do Stuff Infinitely Here
-        System::Delay(10);
+        hw.midi.Listen();
+        // Handle MIDI Events
+        while(hw.midi.HasEvents())
+        {
+            HandleMidiMessage(hw.midi.PopEvent());
+        }
     }
 }
