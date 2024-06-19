@@ -28,6 +28,8 @@ int             switch1[2], switch2[2], switch3[2], dip[4];
 float           nnLevelAdjust;
 int             indexMod;
 
+float knobValues[6]; // Moved to global
+
 float dryMix, wetMix;
 
 Led led1, led2;
@@ -103,6 +105,62 @@ RTNeural::ModelT<float, 1, 1,
 //        - With multi effect (reverb, etc.) added GRU 9 is recommended to allow room for processing of other effects
 //        - These models should be trained using 48kHz audio data, since Daisy uses 48kHz by default.
 //             Models trained with other samplerates, or running Daisy at a different samplerate will sound different.
+
+
+//Setting Struct containing parameters we want to save to flash
+// Using the persistent storage example found on the Daisy Forum:
+//   https://forum.electro-smith.com/t/saving-values-to-flash-memory-using-persistentstorage-class-on-daisy-pod/4306
+struct Settings {
+	float p1;
+	float p2; 
+	float p3;
+	float p4; 
+	float p5;
+	float p6; 
+
+
+	//Overloading the != operator
+	//This is necessary as this operator is used in the PersistentStorage source code
+	bool operator!=(const Settings& a) const {
+        return !(a.p1==p1 && a.p2==p2 && a.p3==p3 && a.p4==p4 && a.p5==p5 && a.p6==p6);
+    }
+};
+
+//Persistent Storage Declaration. Using type Settings and passed the devices qspi handle
+PersistentStorage<Settings> SavedSettings(hw.seed.qspi);
+bool use_preset = false;
+bool trigger_save = false;
+
+void Load() {
+
+	//Reference to local copy of settings stored in flash
+	Settings &LocalSettings = SavedSettings.GetSettings();
+	
+	knobValues[0] = LocalSettings.p1;
+	knobValues[1] = LocalSettings.p2;
+    knobValues[2] = LocalSettings.p3;
+	knobValues[3] = LocalSettings.p4;
+    knobValues[4] = LocalSettings.p5;
+	knobValues[5] = LocalSettings.p6;
+
+	use_preset = true;
+}
+
+void Save() {
+
+	//Reference to local copy of settings stored in flash
+	Settings &LocalSettings = SavedSettings.GetSettings();
+
+	LocalSettings.p1 = knobValues[0];
+	LocalSettings.p2 = knobValues[1];
+	LocalSettings.p3 = knobValues[2];
+	LocalSettings.p4 = knobValues[3];
+    LocalSettings.p5 = knobValues[4];
+	LocalSettings.p6 = knobValues[5];
+
+	trigger_save = true;
+}
+
 
 
 void updateSwitch1() 
@@ -201,6 +259,26 @@ void UpdateButtons()
 
     }
 
+    // Save Preset
+    bool save_check = false;
+    if(hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 2000)  // TODO add some kind of LED indication for preset save such as blinking
+    {
+        Save();
+        save_check = true;
+    }
+
+    // Load Preset
+    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge() && !save_check)
+    {
+        use_preset = !use_preset;
+        if (use_preset) {
+            Load();
+        }
+        led2.Set(use_preset ? 1.0f : 0.0f); 
+    }
+
+
+
     led1.Update();
     led2.Update();
 
@@ -274,19 +352,19 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     // Knob and Expression Processing ////////////////////
 
-    float knobValues[6];
     float newExpressionValues[6];
 
-    knobValues[0] = Gain.Process();
-    knobValues[1] = Mix.Process();
-    knobValues[2] = Level.Process(); 
+    if (!use_preset) {  // TODO Do I want to lock out the knobs when using a preset?
+        knobValues[0] = Gain.Process();
+        knobValues[1] = Mix.Process();
+        knobValues[2] = Level.Process(); 
 
-    knobValues[3] = filter.Process();
-    knobValues[4] = delayTime.Process();
-    knobValues[5] = delayFdbk.Process();
+        knobValues[3] = filter.Process();
+        knobValues[4] = delayTime.Process();
+        knobValues[5] = delayFdbk.Process();
+    }
 
     float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
-    //led2.Set(vexpression); // For testing
     expHandler.Process(vexpression, knobValues, newExpressionValues);
 
 
@@ -488,11 +566,22 @@ int main(void)
     led2.Init(hw.seed.GetPin(Funbox::LED_2),false);
     led2.Update();
 
+	//Initilize the PersistentStorage Object with default values.
+	//Defaults will be the first values stored in flash when the device is first turned on. They can also be restored at a later date using the RestoreDefaults method
+	Settings DefaultSettings = {0.0f, 0.0f};
+	SavedSettings.Init(DefaultSettings);
+
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
     while(1)
     {
+        if(trigger_save) {
+			
+			SavedSettings.Save(); // Writing locally stored settings to the external flash
+			trigger_save = false;
+		}
+		System::Delay(1000);
         // Do Stuff Infinitely Here
-        System::Delay(10);
+        //System::Delay(10);
     }
 }
