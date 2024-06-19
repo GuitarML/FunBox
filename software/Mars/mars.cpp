@@ -130,6 +130,8 @@ struct Settings {
 PersistentStorage<Settings> SavedSettings(hw.seed.qspi);
 bool use_preset = false;
 bool trigger_save = false;
+int blink = 100;
+bool save_check = false;
 
 void Load() {
 
@@ -260,24 +262,33 @@ void UpdateButtons()
     }
 
     // Save Preset
-    bool save_check = false;
-    if(hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 2000)  // TODO add some kind of LED indication for preset save such as blinking
+    if(hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 700 && !save_check)  // TODO add some kind of LED indication for preset save such as blinking
     {
         Save();
         save_check = true;
     }
 
     // Load Preset
-    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge() && !save_check)
+    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge())
     {
-        use_preset = !use_preset;
-        if (use_preset) {
-            Load();
+        if (save_check) {
+            save_check = false;
+        } else {
+            use_preset = !use_preset;
+            if (use_preset) {
+                Load();
+            }
+            led2.Set(use_preset ? 1.0f : 0.0f); 
         }
-        led2.Set(use_preset ? 1.0f : 0.0f); 
     }
 
-
+    // Handle blink for saving a preset
+    if (blink < 100) {
+        blink += 1;
+        led2.Set(1.0f); 
+    } else {
+        led2.Set(use_preset ? 1.0f : 0.0f); 
+    }
 
     led1.Update();
     led2.Update();
@@ -579,8 +590,9 @@ int main(void)
 			
 			SavedSettings.Save(); // Writing locally stored settings to the external flash
 			trigger_save = false;
+            blink = 0;
 		}
-		System::Delay(1000);
+		System::Delay(100);
         // Do Stuff Infinitely Here
         //System::Delay(10);
     }
