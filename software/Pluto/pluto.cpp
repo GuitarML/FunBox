@@ -606,7 +606,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
         if (switch2_action == 0) {    // Stability
             // Set Stablility of Loops
-
             looperA.SetIncrementSize(speed_inputAabs + smoothRandA.Process() * vmodA * 0.05);
             looperB.SetIncrementSize(speed_inputBabs + smoothRandB.Process() * vmodB * 0.05);
         }
