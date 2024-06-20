@@ -261,15 +261,15 @@ void UpdateButtons()
 
     }
 
-    // Save Preset
-    if(hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 700 && !save_check)  // TODO add some kind of LED indication for preset save such as blinking
+    // Save Preset  - Either raise the hold time for save check, or instruct user to hold left then right, let go right then left for Set Expression mode
+    if(hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 700 && !save_check && !expression_pressed && hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() <= 50)  // TODO Check that this logic keeps peset separate from expression
     {
         Save();
         save_check = true;
     }
 
     // Load Preset
-    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge())
+    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge() && !expression_pressed)
     {
         if (save_check) {
             save_check = false;
@@ -287,7 +287,8 @@ void UpdateButtons()
         blink += 1;
         led2.Set(1.0f); 
     } else {
-        led2.Set(use_preset ? 1.0f : 0.0f); 
+        if (!expHandler.isExpressionSetMode())
+            led2.Set(use_preset ? 1.0f : 0.0f); 
     }
 
     led1.Update();
