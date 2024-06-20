@@ -3,6 +3,9 @@
 Jupiter is a Stereo Reverb pedal. The reverb used here is from the [CloudSeed plugin](https://github.com/ValdemarOrn/CloudSeed) (MIT License). It is the same reverb from the Neptune pedal, 
 but more EQ controls are exposed to the user, specifically the post reverb low and high shelf filters, both the frequency cutoff and gain.
 
+
+![app](https://github.com/GuitarML/Funbox/blob/main/software/images/jupiter_infographic.jpg)
+
 ## Controls
 
 | Control | Description | Comment |
@@ -21,13 +24,13 @@ but more EQ controls are exposed to the user, specifically the post reverb low a
 | Dip Switch 3 |  |  |
 | Dip Switch 4 |  |  |
 | FS 1 | Bypass/Engage |  |
-| FS 2 | Freeze | Holds the current Reverb feedback level, and doesn't allow new input to reverb while held, drops the reverb feedback momentarily when let go |
+| FS 2 | Preset | Hold to save preset, press to engage/disengage preset. Saves between power cycles. |
 | LED 1 | Bypass Indicator |  |
-| LED 2 | Freeze Indicator | |
+| LED 2 | Preset Indicator |  |
 | Audio In 1 | Stereo In | Right channel ignored if MISO Mode turned on |
 | Audio Out 1 | Stereo Out  |  |
 <br>
-Expression Operation:<br>
+### Expression
 1. Plug in passive expression pedal into the 1/8" jack on the top left side of pedal. (will need a 1/4" female to 1/8" male TRS adapter)<br>
 2. Hold both footswitches until they both light up (more than 0.5 seconds, but less than 2 seconds), you are now in Set Expression mode.<br>
 3. Move the expression pedal into the heel position (up) and move any number of knobs to where you want to heel limit to be (for example you could turn Volume down). The right LED should be brighter up to indicate the heel position is ready to set.*<br>

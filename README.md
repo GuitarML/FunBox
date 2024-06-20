@@ -14,6 +14,8 @@ Soldering is required to build the hardware. Tayda drill templates are linked al
 template for UV printing the enclosure, if desired. 
 
 
+![app](https://github.com/GuitarML/Funbox/blob/main/software/images/funbox_infographic.jpg)
+
 ## Hardware
 
 The Funbox pedal consists of the following main components:
@@ -24,6 +26,8 @@ The Funbox pedal consists of the following main components:
  - Electronic Components (Tayda, Mouser, Amazon, Digikey (for Dipswitches) etc.)
  - Hardware Components for Terrarium (1/4" Mono Audio Jacks, Power Jack, Knobs, Switches) (I like [LoveMySwitches](https://lovemyswitches.com/))
  - "Funbox" Software - Build your own binary from this repo or download .bin from the [Releases page]()
+<br><br?
+There are alot of variables in building your own pedal, but typically the Funbox will cost around $120 to $150 to build.
 
 IMPORTANT: If you use the Drill Template, double check that the hole diameters match your components. Especially for the LED's, which use the larger diameter hole for 5mm [LED Bezel](https://lovemyswitches.com/5mm-chrome-metal-led-bezel-bag-of-5/).
 

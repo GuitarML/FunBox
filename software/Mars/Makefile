@@ -3,7 +3,7 @@ TARGET = mars
 
 USE_DAISYSP_LGPL = 1
 
-#APP_TYPE = BOOT_SRAM
+APP_TYPE = BOOT_SRAM
 
 # Compiler options
 #OPT = -O1

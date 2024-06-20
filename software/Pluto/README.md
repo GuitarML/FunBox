@@ -9,6 +9,9 @@ knob down to 1x will play your loop at half speed (and half the samplerate).
 
 Pluto is in active development, more features coming 
 
+
+![app](https://github.com/GuitarML/Funbox/blob/main/software/images/pluto_infographic.jpg)
+
 ## Controls
 
 | Control | Description | Comment |
@@ -32,6 +35,7 @@ Pluto is in active development, more features coming
 | Audio Out 1 | Stereo |  |
 
 <br>
+### Expression
 Expression Operation: NOTE THAT THIS IS DIFFERENT FROM OTHER PLANET PEDALS**<br>
 1. Plug in passive expression pedal into the 1/8" jack on the top left side of pedal. (will need a 1/4" female to 1/8" male TRS adapter)<br>
 2. Turn on Dipswitch 3 to enter Set Expression mode, both LEDs should light up, you are now in Set Expression mode.<br>
@@ -45,5 +49,19 @@ Expression Operation: NOTE THAT THIS IS DIFFERENT FROM OTHER PLANET PEDALS**<br>
   Also, some expression pedals have a "Standard" or "Alternate/Other" mode. Funbox should work on the "Standard" mode.<br>
 <br>
 ** Since Pluto uses the footswitches for looper funtions, the third dip switch is used to enter/exit Set Expression mode. Flip dipswitch 3 without adjusting any knobs to clear expression settings.
+
+### MIDI Reference
+
+| Control | MIDI CC | Value |
+| --- | --- | --- |
+| Knob 1 | 14 | 0- 127 |
+| Knob 2 | 15 | 0- 127 |
+| Knob 3 | 16 | 0- 127 |
+| Knob 4 | 17 | 0- 127 |
+| Knob 5 | 18 | 0- 127 |
+| Knob 6 | 19 | 0- 127 |
+| Toggle Left | 21 | 0,1:left ; 2, center; 3 or > right |
+| Toggle Center | 22 | 0,1:left ; 2, center; 3 or > right |
+| Toggle Right| 23 | 0,1:left ; 2, center; 3 or > right |
 
 ## Build

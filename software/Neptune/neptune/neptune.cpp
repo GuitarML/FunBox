@@ -40,10 +40,7 @@ float modAlt;  // Secondary modify function
 float preDelayAlt;
 
 bool force_reset;
-bool release;
-int release_counter;
 
-bool freeze;
 float  del_FDBK_Override;
 
 float ramp;
@@ -60,6 +57,11 @@ float psize, pmodify, pdelayTime, pmix;
 // Expression
 ExpressionHandler expHandler;
 bool expression_pressed;
+
+
+float knobValues[6];
+int toggleValues[3];
+bool dipValues[4];
 
 
 CloudSeed::ReverbController* reverb = 0;
@@ -149,6 +151,80 @@ delay             delayL;
 delay             delayR;  
 
 
+// Setting Struct containing parameters we want to save to flash
+// Using the persistent storage example found on the Daisy Forum:
+//   https://forum.electro-smith.com/t/saving-values-to-flash-memory-using-persistentstorage-class-on-daisy-pod/4306
+struct Settings {
+
+        float knobs[6]; // TODO Add values for alternate parameters
+        int toggles[3];
+        bool dips[4];
+
+	//Overloading the != operator
+	//This is necessary as this operator is used in the PersistentStorage source code
+	bool operator!=(const Settings& a) const {
+        return !(a.knobs[0]==knobs[0] && a.knobs[1]==knobs[1] && a.knobs[2]==knobs[2] && a.knobs[3]==knobs[3] && a.knobs[4]==knobs[4] && a.knobs[5]==knobs[5] && a.toggles[0]==toggles[0] && a.toggles[1]==toggles[1] && a.toggles[2]==toggles[2] && a.dips[0]==dips[0] && a.dips[1]==dips[1] && a.dips[2]==dips[2] && a.dips[3]==dips[3]);
+        //return !(a.p1==p1 && a.p2==p2 && a.p3==p3 && a.p4==p4 && a.p5==p5 && a.p6==p6);
+    }
+};
+
+//Persistent Storage Declaration. Using type Settings and passed the devices qspi handle
+PersistentStorage<Settings> SavedSettings(hw.seed.qspi);
+bool use_preset = false;
+bool trigger_save = false;
+int blink = 100;
+bool save_check = false;
+bool update_switches = false;
+
+void Load() {
+
+    //Reference to local copy of settings stored in flash
+    Settings &LocalSettings = SavedSettings.GetSettings();
+	
+    knobValues[0] = LocalSettings.knobs[0];
+    knobValues[1] = LocalSettings.knobs[1];
+    knobValues[2] = LocalSettings.knobs[2];
+    knobValues[3] = LocalSettings.knobs[3];
+    knobValues[4] = LocalSettings.knobs[4];
+    knobValues[5] = LocalSettings.knobs[5];
+
+    toggleValues[0] = LocalSettings.toggles[0];
+    toggleValues[1] = LocalSettings.toggles[1];
+    toggleValues[2] = LocalSettings.toggles[2];
+
+    dipValues[0] = LocalSettings.dips[0];
+    dipValues[1] = LocalSettings.dips[1];
+    dipValues[2] = LocalSettings.dips[2];
+    dipValues[3] = LocalSettings.dips[3];
+
+    use_preset = true;
+
+}
+
+void Save() {
+    //Reference to local copy of settings stored in flash
+    Settings &LocalSettings = SavedSettings.GetSettings();
+
+    LocalSettings.knobs[0] = knobValues[0];
+    LocalSettings.knobs[1] = knobValues[1];
+    LocalSettings.knobs[2] = knobValues[2];
+    LocalSettings.knobs[3] = knobValues[3];
+    LocalSettings.knobs[4] = knobValues[4];
+    LocalSettings.knobs[5] = knobValues[5];
+
+    LocalSettings.toggles[0] = toggleValues[0];
+    LocalSettings.toggles[1] = toggleValues[1];
+    LocalSettings.toggles[2] = toggleValues[2];
+
+    LocalSettings.dips[0] = dipValues[0];
+    LocalSettings.dips[1] = dipValues[1];
+    LocalSettings.dips[2] = dipValues[2];
+    LocalSettings.dips[3] = dipValues[3];
+
+    trigger_save = true;
+}
+
+
 bool knobMoved(float old_value, float new_value)
 {
     float tolerance = 0.005;
@@ -159,16 +235,15 @@ bool knobMoved(float old_value, float new_value)
     }
 }
 
-void changeMode()
+void updateSwitch1()
 {
     // For the different modes, write a preset in the CloudSeed code, and switch presets here
     reverb->ClearBuffers();
 
-    if (switch1[0] == true) {  
+    if (toggleValues[0] == 0) { 
         reverb->initFactoryChorus();
 
-    } else if (switch1[1] == true) {                       
-
+    } else if (toggleValues[0] == 2) {
         reverb->initFactoryMediumSpace();
 
     } else {                    
@@ -182,7 +257,7 @@ void changeMode()
 void updateSwitch3() 
 {
     // DELAY ///////////////////////
-    if (pswitch3[0]) {                // If switch3 is left, Normal FWD mode
+    if (toggleValues[2] == 0) {                // If switch3 is left, Normal FWD mode
         delayL.active = true;
         delayR.active = true;
         delayL.del->setOctave(false); 
@@ -191,7 +266,7 @@ void updateSwitch3()
         delayR.reverseMode = false;
 
 
-    } else if (pswitch3[1]) {         // If switch3 is right, REV mode
+    } else if (toggleValues[2] == 2) {        // If switch3 is right, REV mode
         delayL.active = true;
         delayR.active = true;
         delayL.del->setOctave(false); 
@@ -225,35 +300,13 @@ void UpdateButtons()
                 led1.Set(bypass ? 0.0f : 1.0f);
             }
         }
-        expression_pressed = false; // TODO Verify if the switch holding for expression interferes with Bypass/Freeze/Alternate functionality
+        expression_pressed = false; // TODO Verify if the switch holding for expression interferes with Bypass/Alternate functionality
     } 
 
     // Toggle Alternate mode by holding down the left footswitch, if not already in alternate mode and not in bypass
-    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && !alternateMode && !bypass && !freeze  && !hw.switches[Funbox::FOOTSWITCH_2].Pressed()) {
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 600 && !alternateMode && !bypass && !hw.switches[Funbox::FOOTSWITCH_2].Pressed() && !expression_pressed) { // TODO Check logic here
         alternateMode = true;
         led1.Set(0.5f);  // Dim LED in alternate mode
-    }
-
-
-    // If switch2 is pressed, freeze the current delay by not applying new delay and setting feedback to 1.0, set to false by default
-    if(hw.switches[Funbox::FOOTSWITCH_2].RisingEdge() && !hw.switches[Funbox::FOOTSWITCH_1].Pressed())
-    {
-        // Apply freeze
-        reverb->SetParameter(::Parameter2::LineDecay, 1.1); // Set to max feedback/decay (~60 seconds)  TODO: Try setting greater than 1
-        freeze = true;
-        del_FDBK_Override = 1.0;
-        led2.Set(1.0);       // Keep LED on if frozen
-    }
-
-    // Reset reverb LineDecay when freeze is let go
-    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge())
-    {
-        freeze = false;
-        release = true;
-        led2.Set(0.0);       // Turn off led when footswitch released
-
-        float vsize = rsize.Process();
-        reverb->SetParameter(::Parameter2::LineDecay, vsize / 4.0); // Set to max feedback/decay (~60 seconds)
     }
 
 
@@ -281,6 +334,44 @@ void UpdateButtons()
 
     }
 
+    // Save Preset  - Either raise the hold time for save check, or instruct user to hold left then right, let go right then left for Set Expression mode
+    if(hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 700 && !save_check && !expression_pressed && hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() <= 50)  // TODO Check that this logic keeps peset separate from expression
+    {
+        Save();
+        save_check = true;
+    }
+
+    // Load Preset
+    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge() && !expression_pressed)
+    {
+        if (save_check) {
+            save_check = false;
+        } else {
+            use_preset = !use_preset;
+            if (use_preset) {
+                Load();
+            } else {
+                update_switches = true; // Need to update switches based on current switch position after turning off preset
+            }
+            led2.Set(use_preset ? 1.0f : 0.0f); 
+
+        }
+        // Need to update switches based on preset
+        updateSwitch1();
+        //updateSwitch2();
+        updateSwitch3();
+    }
+
+    // Handle blink for saving a preset
+    if (blink < 100) {
+        blink += 1;
+        led2.Set(1.0f); 
+    } else {
+        if (!expHandler.isExpressionSetMode())
+            led2.Set(use_preset ? 1.0f : 0.0f); 
+    }
+
+
 
 }
 
@@ -299,21 +390,36 @@ void UpdateSwitches()
             
         }
     }
-    if (changed1) 
-        mode_changed = true;
-
+    if (changed1 || update_switches) { // update_switches is for turning off preset
+        if (pswitch1[0] == true) {
+            toggleValues[0] = 0;
+        } else if (pswitch1[1] == true) {
+            toggleValues[0] = 2;
+        } else {
+            toggleValues[0] = 1;
+        }
+        mode_changed = true; // This will trigger calling updateSwitch1() after a waiting time
+    }
 
 
     // 3-way Switch 2
-    //bool changed2 = false;
+    bool changed2 = false;
     for(int i=0; i<2; i++) {
         if (hw.switches[switch2[i]].Pressed() != pswitch2[i]) {
             pswitch2[i] = hw.switches[switch2[i]].Pressed();
-            //changed2 = true;
+            changed2 = true;
         }
     }
-    //if (changed2) 
-    //    updateSwitch2();
+    if (changed2 || update_switches) {
+        if (pswitch2[0] == true) {
+            toggleValues[1] = 0;
+        } else if (pswitch2[1] == true) {
+            toggleValues[1] = 2;
+        } else {
+            toggleValues[1] = 1;
+        }
+        //updateSwitch2(); // action for routing toggle handled in the audio callback
+    }
 
     // 3-way Switch 3
     bool changed3 = false;
@@ -323,20 +429,37 @@ void UpdateSwitches()
             changed3 = true;
         }
     }
-    if (changed3) 
+    if (changed3 || update_switches) {
+        if (pswitch3[0] == true) {
+            toggleValues[2] = 0;
+        } else if (pswitch3[1] == true) {
+            toggleValues[2] = 2;
+        } else {
+            toggleValues[2] = 1;
+        }
         updateSwitch3();
+    }
 
     // Dip switches
+    bool changed4 = false;
     for(int i=0; i<4; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
             pdip[i] = hw.switches[dip[i]].Pressed();
+            changed4 = true;
             // Action for dipswitches handled in audio callback
         }
     }
+    // Update if preset turned off
+    if (changed4 || update_switches) {
+        for (int i=0; i<4; i++) {
+           dipValues[i] = pdip[i];    // TODO Check logic here
+        }
+    }
 
+    update_switches = false; // only update once after turning off preset
 
     if (mode_changed) {
-        if (ramp > 0.95) { //TODO See if this helps prevent mode from changing too quickly and overloading
+        if (ramp > 0.95) { // Helps prevent mode from changing too quickly and overloading
             ramp = 0.0;
             triggerMode = true;
 
@@ -363,16 +486,18 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     // Knob and Expression Processing ////////////////////
 
-    float knobValues[6];
+    //float knobValues[6];
     float newExpressionValues[6];
 
-    knobValues[0] = rsize.Process();
-    knobValues[1] = mix.Process();
-    knobValues[2] = delayTime.Process();
+    if (!use_preset) {  // TODO Do I want to lock out the knobs when using a preset?
+        knobValues[0] = rsize.Process();
+        knobValues[1] = mix.Process();
+        knobValues[2] = delayTime.Process();
 
-    knobValues[3] = modify.Process();
-    knobValues[4] = filter.Process();
-    knobValues[5] = delayFDBK.Process();
+        knobValues[3] = modify.Process();
+        knobValues[4] = filter.Process();
+        knobValues[5] = delayFDBK.Process();
+    }
 
     float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
     expHandler.Process(vexpression, knobValues, newExpressionValues);
@@ -436,30 +561,15 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     delayR.delayTarget = 2400 + vdelayTime * 189600;   
 
 
-    if (freeze) {
-        delayL.feedback = del_FDBK_Override;
-        delayR.feedback = del_FDBK_Override;
 
-    } else {
-        delayL.feedback = vdelayFDBK;
-        delayR.feedback = vdelayFDBK;
-
-    }
-
-    if (release) {
-        release_counter += 1;
-        if (release_counter > 600) {  // Wait 100ms then reset reverb decay    TODO: How long should decay be held at 0? Should Decay be ramped down/up?
-            release_counter = 0;
-            release = false;
-            force_reset = true; // Forces reverb LineDecay (size) to be reset to current knob setting
-        }
-    }
+    delayL.feedback = vdelayFDBK;
+    delayR.feedback = vdelayFDBK;
 
 
     // Set Reverb Parameters ///////////////
     if ((psize != vsize) || force_reset == true)
     {
-        if ((!alternateMode && !freeze && !release) || force_reset == true) {
+        if ((!alternateMode) || force_reset == true) {
 
             if (pswitch1[0] == true) {  // Chorus
                 reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
@@ -474,7 +584,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             
             psize = vsize;
 
-        } else if (alternateMode && knobMoved(psize, vsize) && !freeze) {  
+        } else if (alternateMode && knobMoved(psize, vsize)) {  
             preDelayAlt = vsize;
             reverb->SetParameter(::Parameter2::PreDelay, preDelayAlt);
             psize = vsize;
@@ -513,7 +623,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         for (size_t i = 0; i < size; i++)
         {
             // Stereo or MISO 
-            if (pdip[0]) {  // Stereo
+            if (dipValues[0]) {  // Stereo
                 inputL = in[0][i];
                 inputR = in[1][i];
             } else {     //MISO
@@ -521,13 +631,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 inputR = in[0][i];
             }
  
-            if (freeze) {
-                delay_inL = 0.0;
-                delay_inR = 0.0;
-            } else {
-                delay_inL = inputL;  // Process any samplerate reduction for input to delay and reverb
-                delay_inR = inputR;
-            }
+            delay_inL = inputL;  // Process any samplerate reduction for input to delay and reverb
+            delay_inR = inputR;
 
             delay_outL = (delayL.Process(delay_inL)  * delayMix);
             delay_outR = (delayR.Process(delay_inR) * delayMix);
@@ -536,11 +641,11 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             // Delay and Reverb Routing based on Switch3 Position
             //        Up=Delay + and into Reverb     Middle= Delay and Reverb in Parallel  Down= Delay into Reverb
 
-            if (pswitch2[0] || pswitch2[1]) {  // Up or Down Delay into reverb
+            if ((toggleValues[1] == 0) || (toggleValues[1] == 2)) {  // Up or Down Delay into reverb
                 inL[0] = delay_inL + delay_outL;
                 inR[0] = delay_inR + delay_outR;
 
-            } else if (!pswitch2[0] && !pswitch2[1]) { // Middle position process R and D in parallel
+            } else { // Middle position process R and D in parallel
                 inL[0] = delay_inL;
                 inR[0] = delay_inR;
             }
@@ -552,7 +657,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             float balanced_outL;
             float balanced_outR;
 
-            if (!pswitch2[1]) {  // If switch3 not down (if either up or middle position) add delay
+            if (!(toggleValues[1] == 1)) {  // If switch3 not down (if either up or middle position) add delay
                 balanced_outL =  (outL[0] * (reverbMix * 1.2) + delay_outL) * wetMix; // Apply mix and level controls, slight reverb boost
                 balanced_outR =  (outR[0] * (reverbMix * 1.2) + delay_outR) * wetMix;
             } else {
@@ -564,12 +669,12 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             out[0][i] = inputL * dryMix + balanced_outL * wetMix;
             out[1][i] = inputR * dryMix + balanced_outR * wetMix;
 
-            if (ramp < 1.0) {
+            if (ramp < 1.0) {  // Volume ramp when changing reverb modes (to prevent audible click)
                 ramp += 0.001;
                 out[0][i] = 0.0;
                 if (ramp > 0.1 && triggerMode == true) {
                     triggerMode = false;
-                    changeMode();
+                    updateSwitch1();
                     mode_changed = false;
                 }
 
@@ -580,7 +685,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         for (size_t i = 0; i < size; i++)
         {
             // Stereo or MISO 
-            if (pdip[0]) {  // Stereo
+            if (dipValues[0]) {  // Stereo
                 inputL = in[0][i];
                 inputR = in[1][i];
             } else {     //MISO
@@ -604,7 +709,7 @@ int main(void)
     CloudSeed::FastSin::Init();
 
     reverb = new CloudSeed::ReverbController(samplerate);
-    changeMode();
+    updateSwitch1();
     using namespace CloudSeed;
     reverb->SetParameter(::Parameter2::PreDelay, 0.0);  // Set initial predelay to 0.0 (controlled by Alt param)
 
@@ -656,9 +761,6 @@ int main(void)
 
     pfilter = 0.5;
 
-    freeze = false;
-    release = false;
-    release_counter = 0;
     force_reset = false;
 
     ramp = 0.0;
@@ -700,11 +802,22 @@ int main(void)
     led2.Init(hw.seed.GetPin(Funbox::LED_2),false);
     led2.Update();
 
+
+    //Initilize the PersistentStorage Object with default values.
+    //Defaults will be the first values stored in flash when the device is first turned on. They can also be restored at a later date using the RestoreDefaults method
+    Settings DefaultSettings = {0.0f, 0.0f};
+    SavedSettings.Init(DefaultSettings);
+
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
     while(1)
     {
-        // Do Stuff Infinitely Here
-        System::Delay(10);
+        if(trigger_save) {
+			
+	    SavedSettings.Save(); // Writing locally stored settings to the external flash
+	    trigger_save = false;
+            blink = 0;
+	}
+	System::Delay(100);
     }
 }

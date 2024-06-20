@@ -21,13 +21,13 @@ Neptune is very similar to the GuitarML Atlas pedal. The reverse delay is a modi
 | Dip Switch 1 | MISO/Stereo | MISO (Mono in stereo out), or True Stereo |
 | Dip Switch 2 |  |  |
 | FS 1 | Bypass, hold to put into Alternate mode | Alternate mode indicated by dimmed LED, switches back when let go |
-| FS 2 | Freeze | Holds the current Reverb/Delay feedback level, and doesn't allow new input to reverb/delay while held, drops the reverb feedback momentarily when let go |
+| FS 2 | Preset | Hold to save preset, press to engage/disengage preset. Saves between power cycles. |
 | LED 1 | Bypass/Alternate Indicator |  |
-| LED 2 | Freeze Indicator | |
+| LED 2 | Preset Indicator |  ||
 | Audio In 1 | Stereo In | Right channel ignored if MISO Mode turned on |
 | Audio Out 1 | Stereo Out  |  |
 <br>
-Expression Operation:<br>
+### Expression
 1. Plug in passive expression pedal into the 1/8" jack on the top left side of pedal. (will need a 1/4" female to 1/8" male TRS adapter)<br>
 2. Hold both footswitches until they both light up (more than 0.5 seconds, but less than 2 seconds), you are now in Set Expression mode.<br>
 3. Move the expression pedal into the heel position (up) and move any number of knobs to where you want to heel limit to be (for example you could turn Volume down). The right LED should be brighter up to indicate the heel position is ready to set.*<br>

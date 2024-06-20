@@ -29,6 +29,8 @@ float           nnLevelAdjust;
 int             indexMod;
 
 float knobValues[6]; // Moved to global
+int toggleValues[3];
+bool dipValues[4];
 
 float dryMix, wetMix;
 
@@ -106,23 +108,21 @@ RTNeural::ModelT<float, 1, 1,
 //        - These models should be trained using 48kHz audio data, since Daisy uses 48kHz by default.
 //             Models trained with other samplerates, or running Daisy at a different samplerate will sound different.
 
-
+//TODO for preset, currently the pedal freezes if the preset hasnt been saved to QPSI before on the Daisy Seed, fix
 //Setting Struct containing parameters we want to save to flash
 // Using the persistent storage example found on the Daisy Forum:
 //   https://forum.electro-smith.com/t/saving-values-to-flash-memory-using-persistentstorage-class-on-daisy-pod/4306
 struct Settings {
-	float p1;
-	float p2; 
-	float p3;
-	float p4; 
-	float p5;
-	float p6; 
 
+        float knobs[6];
+        int toggles[3];
+        bool dips[4];
 
 	//Overloading the != operator
 	//This is necessary as this operator is used in the PersistentStorage source code
 	bool operator!=(const Settings& a) const {
-        return !(a.p1==p1 && a.p2==p2 && a.p3==p3 && a.p4==p4 && a.p5==p5 && a.p6==p6);
+        return !(a.knobs[0]==knobs[0] && a.knobs[1]==knobs[1] && a.knobs[2]==knobs[2] && a.knobs[3]==knobs[3] && a.knobs[4]==knobs[4] && a.knobs[5]==knobs[5] && a.toggles[0]==toggles[0] && a.toggles[1]==toggles[1] && a.toggles[2]==toggles[2] && a.dips[0]==dips[0] && a.dips[1]==dips[1] && a.dips[2]==dips[2] && a.dips[3]==dips[3]);
+        //return !(a.p1==p1 && a.p2==p2 && a.p3==p3 && a.p4==p4 && a.p5==p5 && a.p6==p6);
     }
 };
 
@@ -132,43 +132,65 @@ bool use_preset = false;
 bool trigger_save = false;
 int blink = 100;
 bool save_check = false;
+bool update_switches = false;
+
+
 
 void Load() {
 
-	//Reference to local copy of settings stored in flash
-	Settings &LocalSettings = SavedSettings.GetSettings();
+    //Reference to local copy of settings stored in flash
+    Settings &LocalSettings = SavedSettings.GetSettings();
 	
-	knobValues[0] = LocalSettings.p1;
-	knobValues[1] = LocalSettings.p2;
-    knobValues[2] = LocalSettings.p3;
-	knobValues[3] = LocalSettings.p4;
-    knobValues[4] = LocalSettings.p5;
-	knobValues[5] = LocalSettings.p6;
+    knobValues[0] = LocalSettings.knobs[0];
+    knobValues[1] = LocalSettings.knobs[1];
+    knobValues[2] = LocalSettings.knobs[2];
+    knobValues[3] = LocalSettings.knobs[3];
+    knobValues[4] = LocalSettings.knobs[4];
+    knobValues[5] = LocalSettings.knobs[5];
 
-	use_preset = true;
+    toggleValues[0] = LocalSettings.toggles[0];
+    toggleValues[1] = LocalSettings.toggles[1];
+    toggleValues[2] = LocalSettings.toggles[2];
+
+    dipValues[0] = LocalSettings.dips[0];
+    dipValues[1] = LocalSettings.dips[1];
+    dipValues[2] = LocalSettings.dips[2];
+    dipValues[3] = LocalSettings.dips[3];
+
+    use_preset = true;
+
 }
 
 void Save() {
+    //Reference to local copy of settings stored in flash
+    Settings &LocalSettings = SavedSettings.GetSettings();
 
-	//Reference to local copy of settings stored in flash
-	Settings &LocalSettings = SavedSettings.GetSettings();
+    LocalSettings.knobs[0] = knobValues[0];
+    LocalSettings.knobs[1] = knobValues[1];
+    LocalSettings.knobs[2] = knobValues[2];
+    LocalSettings.knobs[3] = knobValues[3];
+    LocalSettings.knobs[4] = knobValues[4];
+    LocalSettings.knobs[5] = knobValues[5];
 
-	LocalSettings.p1 = knobValues[0];
-	LocalSettings.p2 = knobValues[1];
-	LocalSettings.p3 = knobValues[2];
-	LocalSettings.p4 = knobValues[3];
-    LocalSettings.p5 = knobValues[4];
-	LocalSettings.p6 = knobValues[5];
+    LocalSettings.toggles[0] = toggleValues[0];
+    LocalSettings.toggles[1] = toggleValues[1];
+    LocalSettings.toggles[2] = toggleValues[2];
 
-	trigger_save = true;
+    LocalSettings.dips[0] = dipValues[0];
+    LocalSettings.dips[1] = dipValues[1];
+    LocalSettings.dips[2] = dipValues[2];
+    LocalSettings.dips[3] = dipValues[3];
+
+    trigger_save = true;
 }
 
 
 
 void updateSwitch1() 
 {
-    unsigned int modelIndex = 0;
+    //int modelIndex = 0;
 
+    /*
     if (pswitch1[0] == true) {
         modelIndex = 1;
     } else if (pswitch1[1] == true) {
@@ -176,6 +198,9 @@ void updateSwitch1()
     } else {
         modelIndex = 2;
     }
+    */
+
+    int modelIndex = toggleValues[0] + 1;
 
     auto& gru = (model).template get<0>();
     auto& dense = (model).template get<1>();
@@ -193,30 +218,24 @@ void updateSwitch1()
 
 void updateSwitch2() 
 {
-    unsigned int irIndex = 0;
-
-    if (pswitch2[0] == true) {
-        irIndex = 0;
-    } else if (pswitch2[1] == true) {
-        irIndex = 2;
-    } else {
-        irIndex = 1;
-    }
-
+    int irIndex = toggleValues[1];
     mIR.Init(ir_collection[irIndex]);  // ir_data is from ir_data.h
 }
 
 
 void updateSwitch3() 
 {
-    if (pswitch3[0] == true) {
+    if (toggleValues[2] == 0) {
         delay1.secondTapOn = false;
-    } else if (pswitch3[1] == true) {
+
+    } else if (toggleValues[2] == 2) {
         delay1.secondTapOn = true;
         delay1.del->set2ndTapFraction(0.6666667); // triplett
+
     } else {
         delay1.secondTapOn = true;
         delay1.del->set2ndTapFraction(0.75); // dotted eighth
+
     }
 }
 
@@ -277,9 +296,16 @@ void UpdateButtons()
             use_preset = !use_preset;
             if (use_preset) {
                 Load();
+            } else {
+                update_switches = true; // Need to update switches based on current switch position after turning off preset
             }
             led2.Set(use_preset ? 1.0f : 0.0f); 
+
         }
+        // Need to update switches based on preset
+        updateSwitch1();
+        updateSwitch2();
+        updateSwitch3();
     }
 
     // Handle blink for saving a preset
@@ -309,8 +335,16 @@ void UpdateSwitches()
             changed1 = true;
         }
     }
-    if (changed1) 
+    if (changed1 || update_switches) { // update_switches is for turning off preset
+        if (pswitch1[0] == true) {
+            toggleValues[0] = 0;
+        } else if (pswitch1[1] == true) {
+            toggleValues[0] = 2;
+        } else {
+            toggleValues[0] = 1;
+        }
         updateSwitch1();
+    }
     
 
 
@@ -322,8 +356,17 @@ void UpdateSwitches()
             changed2 = true;
         }
     }
-    if (changed2) 
+    if (changed2 || update_switches) {
+        if (pswitch2[0] == true) {
+            toggleValues[1] = 0;
+        } else if (pswitch2[1] == true) {
+            toggleValues[1] = 2;
+        } else {
+            toggleValues[1] = 1;
+        }
         updateSwitch2();
+
+    }
 
     // 3-way Switch 3
     bool changed3 = false;
@@ -333,16 +376,35 @@ void UpdateSwitches()
             changed3 = true;
         }
     }
-    if (changed3) 
+    if (changed3 || update_switches) {
+        if (pswitch3[0] == true) {
+            toggleValues[2] = 0;
+        } else if (pswitch3[1] == true) {
+            toggleValues[2] = 2;
+        } else {
+            toggleValues[2] = 1;
+        }
         updateSwitch3();
+    }
 
     // Dip switches
+    bool changed4 = false;
     for(int i=0; i<4; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
             pdip[i] = hw.switches[dip[i]].Pressed();
+            dipValues[i] = pdip[i]; // TODO Look into consolidating logic for dipValues, pdip, etc (this is for preset saving)
+            bool changed4 = true;
             // Action for dipswitches handled in audio callback
         }
     }
+    // Update if preset turned off  
+    if (changed4 || update_switches) {
+        for (int i=0; i<4; i++) {
+           dipValues[i] = pdip[i];   // TODO Check logic here
+        }
+    }
+
+    update_switches = false; // only update once after turning off preset
 }
 
 // This runs at a fixed rate, to prepare audio samples
@@ -458,7 +520,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             input_arr[0] = in[0][i] * vgain;
 
             // Process Neural Net Model //
-            if (pdip[0]) {   // Enable/Disable neural model
+            if (dipValues[0]) {   // Enable/Disable neural model
                 ampOut = model.forward (input_arr) + input_arr[0];  
                 ampOut *= nnLevelAdjust;
             } else {
@@ -485,7 +547,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             // IMPULSE RESPONSE //
             float impulse_out = 0.0;
             
-            if (pdip[1]) // If IR is enabled by dip switch
+            if (dipValues[1]) // If IR is enabled by dip switch
             {
                 impulse_out = mIR.Process(balanced_out * dryMix + delay_out * wetMix) * 0.2;  
             } else {
@@ -578,23 +640,23 @@ int main(void)
     led2.Init(hw.seed.GetPin(Funbox::LED_2),false);
     led2.Update();
 
-	//Initilize the PersistentStorage Object with default values.
-	//Defaults will be the first values stored in flash when the device is first turned on. They can also be restored at a later date using the RestoreDefaults method
-	Settings DefaultSettings = {0.0f, 0.0f};
-	SavedSettings.Init(DefaultSettings);
+    //Initilize the PersistentStorage Object with default values.
+    //Defaults will be the first values stored in flash when the device is first turned on. They can also be restored at a later date using the RestoreDefaults method
+    Settings DefaultSettings = {0.0f, 0.0f};
+    SavedSettings.Init(DefaultSettings);
 
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
+
     while(1)
     {
         if(trigger_save) {
 			
-			SavedSettings.Save(); // Writing locally stored settings to the external flash
-			trigger_save = false;
+	    SavedSettings.Save(); // Writing locally stored settings to the external flash
+	    trigger_save = false;
             blink = 0;
-		}
-		System::Delay(100);
-        // Do Stuff Infinitely Here
-        //System::Delay(10);
+	}
+	System::Delay(100);
+
     }
 }

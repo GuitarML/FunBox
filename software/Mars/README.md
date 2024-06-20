@@ -26,9 +26,9 @@ If a stereo signal is going into the input, Mars will only take the left channel
 | Dip Switch 1 | Amp On/Off | Engage/Disengage Neural model |
 | Dip Switch 2 | IR On/Off| Engage/Disengage IR |
 | FS 1 | Bypass |  |
-| FS 2 |  |  |
+| FS 2 | Preset | Hold to save preset, press to engage/disengage preset. Saves between power cycles. |
 | LED 1 | Bypass Indicator |  |
-| LED 2 |  | |
+| LED 2 | Preset Indicator |  ||
 | Audio In 1 | Mono In (Left Channel) | Right channel ignored if using TRS  |
 | Audio Out 1 | Mono Out  | Left channel copied to Right Channel if using TRS |
 
