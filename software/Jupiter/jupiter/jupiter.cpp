@@ -480,55 +480,35 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
 
     // Set Reverb Parameters ///////////////
+    if (knobMoved(prdecay, vrdecay)) {
 
-
-    if (prdecay != vrdecay) // Force reset to apply knob params when switching reverb modes
-    {
-
-        if (knobMoved(prdecay, vrdecay)) {
-
-            reverb->SetParameter(::Parameter2::LineDecay, (vrdecay * 0.65 + 0.35)); // Range 0.35 to 1.0
-            prdecay = vrdecay;
-        }
+        reverb->SetParameter(::Parameter2::LineDecay, (vrdecay * 0.65 + 0.35)); // Range 0.35 to 1.0
+        prdecay = vrdecay;
     }
 
+    if (knobMoved(plowfreq, vlowfreq)) {
 
-    if (plowfreq != vlowfreq) // Force reset to apply knob params when switching reverb modes
-    {
-        if (knobMoved(plowfreq, vlowfreq)) {
-
-            reverb->SetParameter(::Parameter2::PostLowShelfFrequency, vlowfreq);
-            plowfreq = vlowfreq;
-        }
+        reverb->SetParameter(::Parameter2::PostLowShelfFrequency, vlowfreq);
+        plowfreq = vlowfreq;
     }
 
-    if (plowshelf != vlowshelf) // Force reset to apply knob params when switching reverb modes
-    {
-        if (knobMoved(plowshelf, vlowshelf)) {
+    if (knobMoved(plowshelf, vlowshelf)) {
 
-            reverb->SetParameter(::Parameter2::PostLowShelfGain, vlowshelf);
-            plowshelf = vlowshelf;
-        }
+        reverb->SetParameter(::Parameter2::PostLowShelfGain, vlowshelf);
+        plowshelf = vlowshelf;
     }
 
-    if (phighfreq != vhighfreq) // Force reset to apply knob params when switching reverb modes
-    {
-        if (knobMoved(phighfreq, vhighfreq)) {
+    if (knobMoved(phighfreq, vhighfreq)) {
 
-            reverb->SetParameter(::Parameter2::PostHighShelfFrequency, vhighfreq);
-            phighfreq = vhighfreq;
-        }
+        reverb->SetParameter(::Parameter2::PostHighShelfFrequency, vhighfreq);
+        phighfreq = vhighfreq;
     }
 
-    if (phighshelf != vhighshelf) // Force reset to apply knob params when switching reverb modes
-    {
-        if (knobMoved(phighshelf, vhighshelf)) {
+    if (knobMoved(phighshelf, vhighshelf)) {
 
-            reverb->SetParameter(::Parameter2::PostHighShelfGain, vhighshelf * 0.7 + 0.3);
-            phighshelf = vhighshelf;
-        }
+        reverb->SetParameter(::Parameter2::PostHighShelfGain, vhighshelf * 0.7 + 0.3);
+        phighshelf = vhighshelf;
     }
-
 
     float inL[1];
     float outL[1];
