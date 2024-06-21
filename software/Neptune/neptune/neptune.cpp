@@ -174,7 +174,7 @@ bool use_preset = false;
 bool trigger_save = false;
 int blink = 100;
 bool save_check = false;
-bool update_switches = false;
+bool update_switches;
 
 void Load() {
 
@@ -776,6 +776,8 @@ int main(void)
     pdip[1]= false;
     pdip[2]= false;
     pdip[3]= false;
+
+    update_switches = true;
 
     // Expression
     expHandler.Init(6);
