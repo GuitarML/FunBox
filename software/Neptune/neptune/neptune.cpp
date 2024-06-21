@@ -518,7 +518,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float vdelayFDBK = newExpressionValues[5];
 
 
-    if (pmix != vmix || force_reset == true) {
+    if (knobMoved(pmix, vmix) || force_reset == true) {
         // Handle Normal or Alternate Mode Mix Controls
         //    A cheap mostly energy constant crossfade from SignalSmith Blog
         float x2 = 1.0 - vmix;
@@ -527,16 +527,16 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         float C = B + vmix;
         float D = B + x2;
 
-        if (alternateMode == false) {
+        if (!alternateMode) {
             wetMix = C * C;
             dryMix = D * D;
-            pmix = vmix;
-        //} else if (alternateMode == true && pmix != vmix) {
-        } else if (alternateMode == true && knobMoved(pmix, vmix)) {    //// UPDATE   //// UPDATE   //// UPDATE
+
+        } else {    //// UPDATE   //// UPDATE   //// UPDATE
             delayMix = C * C;
             reverbMix = D * D;
-            pmix = vmix;
+
         }
+        pmix = vmix;
     }
 
     if (knobMoved(pfilter, vfilter)) {
@@ -560,48 +560,35 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     delayL.delayTarget = 2400 + vdelayTime * 189600; 
     delayR.delayTarget = 2400 + vdelayTime * 189600;   
 
-
-
     delayL.feedback = vdelayFDBK;
     delayR.feedback = vdelayFDBK;
 
 
     // Set Reverb Parameters ///////////////
-    if ((psize != vsize) || force_reset == true)
+    if (knobMoved(psize, vsize) || force_reset == true)
     {
-        if ((!alternateMode) || force_reset == true) {
+        if (!alternateMode) {
 
-            if (pswitch1[0] == true) {  // Chorus
-                reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
+            reverb->SetParameter(::Parameter2::LineDecay, (vsize));      
 
-            } else if (pswitch1[1] == true) {  // Hall
-                reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
-
-            } else {  // Cloud
-                reverb->SetParameter(::Parameter2::LineDecay, (vsize)); 
-
-            }
-            
-            psize = vsize;
-
-        } else if (alternateMode && knobMoved(psize, vsize)) {  
+        } else {  
             preDelayAlt = vsize;
             reverb->SetParameter(::Parameter2::PreDelay, preDelayAlt);
-            psize = vsize;
         }
+        psize = vsize;
     }
 
-    if ((pmodify != vmodify || force_reset == true)) // Force reset to apply knob params when switching reverb modes, or when alternate mode released
+    if ((knobMoved(pmodify, vmodify) || force_reset == true)) // Force reset to apply knob params when switching reverb modes, or when alternate mode released
     {
         if (!alternateMode) {
             reverb->SetParameter(::Parameter2::LineModAmount, vmodify); // Range 0 to 1
-            pmodify = vmodify;
 
-        } else if (alternateMode && knobMoved(pmodify, vmodify)) {
+        } else {
             modAlt = vmodify;
             reverb->SetParameter(::Parameter2::LineModRate, modAlt); // Range 0 to ~1
-            pmodify = vmodify;
+
         }
+        pmodify = vmodify;
     }
 
     force_reset = false;
@@ -646,8 +633,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 inR[0] = delay_inR + delay_outR;
 
             } else { // Middle position process R and D in parallel
-                inL[0] = delay_inL;
-                inR[0] = delay_inR;
+                inL[0] = inputL;
+                inR[0] = inputR;
             }
 
 
@@ -657,7 +644,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             float balanced_outL;
             float balanced_outR;
 
-            if (!(toggleValues[1] == 1)) {  // If switch3 not down (if either up or middle position) add delay
+            if (!(toggleValues[1] == 2)) {  // If switch3 not down (if either up or middle position) add delay
                 balanced_outL =  (outL[0] * (reverbMix * 1.2) + delay_outL) * wetMix; // Apply mix and level controls, slight reverb boost
                 balanced_outR =  (outR[0] * (reverbMix * 1.2) + delay_outR) * wetMix;
             } else {
@@ -816,8 +803,8 @@ int main(void)
 			
 	    SavedSettings.Save(); // Writing locally stored settings to the external flash
 	    trigger_save = false;
-            blink = 0;
-	}
+        blink = 0;
+	    }
 	System::Delay(100);
     }
 }
