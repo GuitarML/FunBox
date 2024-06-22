@@ -5,8 +5,6 @@ This repo includes the KiCad design files for the PCB, as well as software packa
 Funbox as a fully featured guitar pedal. You can build your own and use the effects included here,
 or use it as a starting place to design your own awesome pedal!
 
-**Work In Progress** Check back for updates!
-
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_front.jpg)
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_inside.jpg)
 
