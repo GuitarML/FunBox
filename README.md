@@ -1,4 +1,5 @@
 # Funbox
+[![Downloads](https://img.shields.io/github/downloads/GuitarML/Funbox/total)](https://somsubhra.github.io/github-release-stats/?username=GuitarML&repository=Funbox&page=1&per_page=30)
 
 Funbox is a digital stereo guitar effect platform using the Daisy Seed by Electrosmith.
 This repo includes the KiCad design files for the PCB, as well as software packages to configure your
