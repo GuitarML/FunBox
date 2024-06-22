@@ -31,8 +31,20 @@ There are alot of variables in building your own pedal, but typically the Funbox
 
 IMPORTANT: If you use the Drill Template, double check that the hole diameters match your components. Especially for the LED's, which use the larger diameter hole for 5mm [LED Bezel](https://lovemyswitches.com/5mm-chrome-metal-led-bezel-bag-of-5/).
 
+The PCB design KiCad is provided here, which can be used to order from a manufacturer such as OSHPark or PCBWay. 
+
 
 ## Software
+
+The following pedal modules are provided here:
+
+Planet Series
+- [Mars](https://github.com/GuitarML/Funbox/blob/main/software/Mars): An amp sim/delay using neural models and Impulse Responses and three delay modes.
+- [Jupiter](https://github.com/GuitarML/Funbox/blob/main/software/Jupiter): A Reverb with a focus on EQ for shaping the sound.
+- [Neptune](https://github.com/GuitarML/Funbox/blob/main/software/Neptune): A Reverb/Delay capable of ethereal sounds.
+- [Pluto](https://github.com/GuitarML/Funbox/blob/main/software/Pluto): A Dual/Stereo looper with variable speed/direction control and real time loop effects.
+
+There are also a couple [Experiments](https://github.com/GuitarML/Funbox/blob/main/software/Experiments) including a Chorus/Reverb and FFT based filter.
 
 ### Build the Software
 Head to the [Electro-Smith Wiki](https://github.com/electro-smith/DaisyWiki) to learn how to set up the Daisy environment on your computer.
