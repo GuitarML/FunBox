@@ -8,6 +8,7 @@ or use it as a starting place to design your own awesome pedal!
 **Work In Progress** Check back for updates!
 
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_front.jpg)
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_inside.jpg)
 
 The resources included here allow you to build a guitar pedal with comparable features to commercial brands. 
 Soldering is required to build the hardware. Tayda drill templates are linked along with an Adobe Illustrator 
@@ -31,7 +32,9 @@ There are alot of variables in building your own pedal, but typically the Funbox
 
 IMPORTANT: If you use the Drill Template, double check that the hole diameters match your components. Especially for the LED's, which use the larger diameter hole for 5mm [LED Bezel](https://lovemyswitches.com/5mm-chrome-metal-led-bezel-bag-of-5/).
 
-The PCB design KiCad is provided here, which can be used to order from a manufacturer such as OSHPark or PCBWay. 
+The PCB design KiCad is provided here, which can be used to order from a manufacturer such as OSHPark or PCBWay. .
+![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_render.jpg)
+Component values are printed on the board for easy assembly! (OSHPark render shown here)
 
 
 ## Software
