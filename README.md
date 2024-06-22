@@ -26,7 +26,7 @@ The Funbox pedal consists of the following main components:
  - 125B Enclosure ([Powder coat](https://www.taydaelectronics.com/cream-125b-style-aluminum-diecast-enclosure.html), [Custom Drill](https://www.taydaelectronics.com/125b-custom-drill-enclosure-service.html), and [UV print](https://www.taydaelectronics.com/125b-uv-printing-service.html) ordered from [Tayda](https://www.taydaelectronics.com/)) - $15
  - Electronic Components (Tayda, Mouser, Amazon, Digikey (for Dipswitches) etc.)
  - Hardware Components for Terrarium (1/4" Mono Audio Jacks, Power Jack, Knobs, Switches) (I like [LoveMySwitches](https://lovemyswitches.com/))
- - "Funbox" Software - Build your own binary from this repo or download .bin from the [Releases page]()
+ - "Funbox" Software - Build your own binary from this repo or download .bin from the [Releases page](https://github.com/GuitarML/FunBox/releases)
 <br><br>
 There are alot of variables in building your own pedal, but typically the Funbox will cost around $120 to $150 to build.
 
@@ -48,6 +48,8 @@ Planet Series
 - [Pluto](https://github.com/GuitarML/Funbox/blob/main/software/Pluto): A Dual/Stereo looper with variable speed/direction control and real time loop effects.
 
 There are also a couple [Experiments](https://github.com/GuitarML/Funbox/blob/main/software/Experiments) including a Chorus/Reverb and FFT based filter.
+
+Download the compiled modules for the Funbox from the [Releases Page](https://github.com/GuitarML/FunBox/releases).
 
 ### Build the Software
 Head to the [Electro-Smith Wiki](https://github.com/electro-smith/DaisyWiki) to learn how to set up the Daisy environment on your computer.
