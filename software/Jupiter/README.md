@@ -45,6 +45,4 @@ but more EQ controls are exposed to the user, specifically the post reverb low a
 
 ## Build
 
-Jupiter runs in SRAM memory on the Daisy Seed. You must use the Bootloader to load the executable.
-
-Before building Jupiter, you must build Cloudseed with ```make```
+Before building Jupiter, you must build Cloudseed with ```make``` in the CloudSeed folder.
