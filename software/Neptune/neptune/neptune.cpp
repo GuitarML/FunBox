@@ -244,10 +244,10 @@ void updateSwitch1()
         reverb->initFactoryChorus();
 
     } else if (toggleValues[0] == 2) {
-        reverb->initFactoryMediumSpace();
+        reverb->initFactoryRubiKaFields();
 
     } else {                    
-        reverb->initFactoryRubiKaFields();
+        reverb->initFactoryMediumSpace();
 
     } 
     reverb->SetParameter(::Parameter2::LineCount, 2);

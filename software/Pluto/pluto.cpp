@@ -687,7 +687,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         led1.Set(ledBrightnessA * 0.5 + 0.5);       // Pulse the LED when recording
     } 
 
-    if (pausePlaybackB) {
+    if (pausePlaybackA) {
         led1.Set(ledBrightnessA * 2.0);             // Blink the LED when paused
     }
 
