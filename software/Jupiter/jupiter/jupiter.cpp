@@ -89,7 +89,7 @@ bool use_preset = false;
 bool trigger_save = false;
 int blink = 100;
 bool save_check = false;
-bool update_switches = false;
+bool update_switches = true;
 
 void Load() {
 
