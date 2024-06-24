@@ -24,7 +24,7 @@ The Funbox pedal consists of the following main components:
  - Funbox PCB (order from OSHPark or other manufacturer) - $30 for minimum of 3 from OshPark
  - 125B Enclosure ([Powder coat](https://www.taydaelectronics.com/cream-125b-style-aluminum-diecast-enclosure.html), [Custom Drill](https://www.taydaelectronics.com/125b-custom-drill-enclosure-service.html), and [UV print](https://www.taydaelectronics.com/125b-uv-printing-service.html) ordered from [Tayda](https://www.taydaelectronics.com/)) - $15
  - Electronic Components (Tayda, Mouser, Amazon, Digikey (for Dipswitches) etc.)
- - Hardware Components for Terrarium (1/4" Stereo Audio Jacks, Power Jack, Knobs, Switches) (I like [LoveMySwitches](https://lovemyswitches.com/))
+ - Hardware Components for Funbox (1/4" Stereo Audio Jacks, Power Jack, Knobs, Switches) (I like [LoveMySwitches](https://lovemyswitches.com/))
  - "Funbox" Software - Build your own binary from this repo or download .bin from the [Releases page](https://github.com/GuitarML/FunBox/releases)
 <br><br>
 There are alot of variables in building your own pedal, but typically the Funbox will cost around $120 to $150 to build.
