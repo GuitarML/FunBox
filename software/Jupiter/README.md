@@ -42,6 +42,16 @@ but more EQ controls are exposed to the user, specifically the post reverb low a
 * Currently, the expression input requires the full range of the expression pedal, in order to detect Up/Down positions. You can sometimes trim the expression pedal to not use the full range, so adjust the trim as necessary.<br>
   Also, some expression pedals have a "Standard" or "Alternate/Other" mode. Funbox should work on the "Standard" mode.<br>
 
+### MIDI Reference
+
+| Control | MIDI CC | Value |
+| --- | --- | --- |
+| Knob 1 | 14 | 0- 127 |
+| Knob 2 | 15 | 0- 127 |
+| Knob 3 | 16 | 0- 127 |
+| Knob 4 | 17 | 0- 127 |
+| Knob 5 | 18 | 0- 127 |
+| Knob 6 | 19 | 0- 127 |
 
 ## Build
 
