@@ -707,7 +707,8 @@ int main(void)
     Settings DefaultSettings = {0.0f, 0.0f};
     SavedSettings.Init(DefaultSettings);
 
-
+    hw.InitMidi();
+    hw.midi.StartReceive();
 
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
