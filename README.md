@@ -6,7 +6,7 @@ This repo includes the KiCad design files for the PCB, as well as software packa
 Funbox as a fully featured guitar pedal. You can build your own and use the effects included here,
 or use it as a starting place to design your own awesome pedal!
 
-Check out the video demo of the [Mars](https://youtu.be/e60Wy_VvJX8?si=AbR1MXqZ35HZ0Mvu) module on Funbox.
+Check out the [YouTube demo](https://youtu.be/e60Wy_VvJX8?si=AbR1MXqZ35HZ0Mvu) of the Mars module on Funbox.
 
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_front.jpg)
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_inside.jpg)
