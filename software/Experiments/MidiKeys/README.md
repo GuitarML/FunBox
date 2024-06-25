@@ -1,28 +1,28 @@
 # MidiKeys
 
-Experiment using the DaisySP ModalVoice and StringVoice class. Use a midi keyboard to strike the resonator, and shape the sound with the controls.
+Experiment using the DaisySP ModalVoice, StringVoice, and a synth voice. Use a midi keyboard to strike the resonator, and shape the sound with the controls.
 Added a Reverb as well.
-Monophonic (one note at a time)
+Monophonic (one note at a time) for modal and string, and 8 polyphony for synth.
 
 ## Controls
 
 | Control | Description | Comment |
 | --- | --- | --- |
-| Ctrl 1 | Structure |  |
+| Ctrl 1 | Structure or Synth Filter |  |
 | Ctrl 2 | Brightness |  |
 | Ctrl 3 | Level |  |
 | Ctrl 4 | Damping |  |
-| Ctrl 5 | Reverb Time |  |
-| Ctrl 6 | Reverb Damping |  |
-| 3-Way Switch 1 | Voice Mode | left=Modal, center=String spreadFreq, right= |
-| 3-Way Switch 2 |  |  |
+| Ctrl 5 | Reverb Time or Delay Time |  |
+| Ctrl 6 | Reverb Damping or Delay Feedback|  |
+| 3-Way Switch 1 | Voice Mode | left=Modal, center=String spreadFreq, right=Synth |
+| 3-Way Switch 2 | Effect Mode | left=Reverb, center=Delay |
 | 3-Way Switch 3 |  |  |
 | Dip Switch 1 |  |  |
 | Dip Switch 2 |  |  |
 | FS 1 | Bypass |  |
 | FS 2 |  |  |
 | LED 1 | Bypass Indicator |  |
-| LED 2 |  | |
+| LED 2 | Lights up for MIDI Notes Received | |
 | Audio In 1 | N/A | Ignores Right channel input  |
 | Audio Out 1 | Stereo | |
 

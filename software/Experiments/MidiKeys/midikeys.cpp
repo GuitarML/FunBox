@@ -26,7 +26,7 @@ int             switch1[2], switch2[2], switch3[2], dip[4];
 StringVoice   stringvoice;
 ModalVoice   modalvoice;
 ReverbSc     verb;
-int mode = 0; // 0=modalvoice 1=stringvoice
+int mode = 0; // 0=modalvoice 1=stringvoice 2=synth
 
 bool first_start=true;
 
@@ -37,6 +37,190 @@ Led led1, led2;
 bool midi_control[6]; // knobs 0-5
 float pknobValues[6];
 float knobValues[6];
+
+
+int effect_mode = 0;
+
+// Delay
+#define MAX_DELAY static_cast<size_t>(48000 * 3.f + 1000) // 3 second max delay
+DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delayLine;
+
+struct delay
+{
+    DelayLine<float, MAX_DELAY> *del;
+    float                        currentDelay;
+    float                        delayTarget;
+    float                        feedback;
+    float                        active = false;
+    
+    float Process(float in)
+    {
+        //set delay times
+        fonepole(currentDelay, delayTarget, .0002f);
+        del->SetDelay(currentDelay);
+
+        float read = del->Read();
+        if (active) {
+            del->Write((feedback * read) + in);
+        } else {
+            del->Write((feedback * read)); // if not active, don't write any new sound to buffer
+        }
+
+        return read;
+    }
+};
+
+delay             delay1;
+
+
+class Voice
+{
+  public:
+    Voice() {}
+    ~Voice() {}
+    void Init(float samplerate)
+    {
+        active_ = false;
+        osc_.Init(samplerate);
+        osc_.SetAmp(0.75f);
+        osc_.SetWaveform(Oscillator::WAVE_POLYBLEP_SAW);
+        env_.Init(samplerate);
+        env_.SetSustainLevel(0.5f);
+        env_.SetTime(ADSR_SEG_ATTACK, 0.005f);
+        env_.SetTime(ADSR_SEG_DECAY, 0.005f);
+        env_.SetTime(ADSR_SEG_RELEASE, 0.2f);
+        filt_.Init(samplerate);
+        filt_.SetFreq(6000.f);
+        filt_.SetRes(0.6f);
+        filt_.SetDrive(0.8f);
+    }
+
+    float Process()
+    {
+        if(active_)
+        {
+            float sig, amp;
+            amp = env_.Process(env_gate_);
+            if(!env_.IsRunning())
+                active_ = false;
+            sig = osc_.Process();
+            filt_.Process(sig);
+            return filt_.Low() * (velocity_ / 127.f) * amp;
+        }
+        return 0.f;
+    }
+
+    void OnNoteOn(float note, float velocity)
+    {
+        note_     = note;
+        velocity_ = velocity;
+        osc_.SetFreq(mtof(note_));
+        active_   = true;
+        env_gate_ = true;
+    }
+
+    void OnNoteOff() { env_gate_ = false; }
+
+    void SetCutoff(float val) { filt_.SetFreq(val); }
+    //void SetSustain(float val) { env_.SetSustainLevel(val); }
+
+    inline bool  IsActive() const { return active_; }
+    inline float GetNote() const { return note_; }
+
+  private:
+    Oscillator osc_;
+    Svf        filt_;
+    Adsr       env_;
+    float      note_, velocity_;
+    bool       active_;
+    bool       env_gate_;
+};
+
+template <size_t max_voices>
+class VoiceManager
+{
+  public:
+    VoiceManager() {}
+    ~VoiceManager() {}
+
+    void Init(float samplerate)
+    {
+        for(size_t i = 0; i < max_voices; i++)
+        {
+            voices[i].Init(samplerate);
+        }
+    }
+
+    float Process()
+    {
+        float sum;
+        sum = 0.f;
+        for(size_t i = 0; i < max_voices; i++)
+        {
+            sum += voices[i].Process();
+        }
+        return sum;
+    }
+
+    void OnNoteOn(float notenumber, float velocity)
+    {
+        Voice *v = FindFreeVoice();
+        if(v == NULL)
+            return;
+        v->OnNoteOn(notenumber, velocity);
+    }
+
+    void OnNoteOff(float notenumber, float velocity)
+    {
+        for(size_t i = 0; i < max_voices; i++)
+        {
+            Voice *v = &voices[i];
+            if(v->IsActive() && v->GetNote() == notenumber)
+            {
+                v->OnNoteOff();
+            }
+        }
+    }
+
+    void FreeAllVoices()
+    {
+        for(size_t i = 0; i < max_voices; i++)
+        {
+            voices[i].OnNoteOff();
+        }
+    }
+
+    void SetCutoff(float all_val)
+    {
+        for(size_t i = 0; i < max_voices; i++)
+        {
+            voices[i].SetCutoff(all_val);
+        }
+    }
+
+
+  private:
+    Voice  voices[max_voices];
+    Voice *FindFreeVoice()
+    {
+        Voice *v = NULL;
+        for(size_t i = 0; i < max_voices; i++)
+        {
+            if(!voices[i].IsActive())
+            {
+                v = &voices[i];
+                break;
+            }
+        }
+        return v;
+    }
+};
+
+
+static VoiceManager<8> voice_handler;
+
+
+
 
 bool knobMoved(float old_value, float new_value)
 {
@@ -54,22 +238,22 @@ void updateSwitch1() // left=, center=, right=
     if (pswitch1[0] == true) {  // left
         mode = 0;
     } else if (pswitch1[1] == true) {  // right
-        mode = 1;
+        mode = 2;
 
     } else {   // center
         mode = 1;
     }      
 }
 
-void updateSwitch2() // left=, center=, right=
+void updateSwitch2() // left=reverb, center=delay, right=
 {
     if (pswitch2[0] == true) {  // left
-
+        effect_mode = 0;
     } else if (pswitch2[1] == true) {  // right
-
+        effect_mode = 1;
 
     } else {   // center
-
+        effect_mode = 1;
     }    
 }
 
@@ -210,16 +394,29 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     // Handle Knob Changes Here
     vlevel = knobValues[2];
 
-    modalvoice.SetStructure(knobValues[0]);
-    modalvoice.SetBrightness(knobValues[1]);
-    modalvoice.SetDamping(knobValues[3]);
-
-    stringvoice.SetStructure(knobValues[0]);
-    stringvoice.SetBrightness(knobValues[1]);
-    stringvoice.SetDamping(knobValues[3]);
-
+    if (mode == 0) {
+        modalvoice.SetStructure(knobValues[0]);
+        modalvoice.SetBrightness(knobValues[1]);
+        modalvoice.SetDamping(knobValues[3]);
+    } else if (mode == 1) {
+        stringvoice.SetStructure(knobValues[0]);
+        stringvoice.SetBrightness(knobValues[1]);
+        stringvoice.SetDamping(knobValues[3]);
+    } else {
+        voice_handler.SetCutoff(250 + knobValues[0] * (8500 -  250));
+        //voice_handler.SetSustain(knobValues[1]);
+    }
     verb.SetFeedback(.4 + (1.0 - .4) * knobValues[4]);
     verb.SetLpFreq(300 + (18000 - 300) * (1.0 - knobValues[5] * knobValues[5]));
+
+    if (knobValues[5] < 0.01) {   // if knob < 1%, set delay to inactive
+        delay1.active = false;
+    } else {
+        delay1.active = true;
+    }
+
+    delay1.delayTarget = knobValues[5] * 144000; // in samples 0 to 3 second range  
+    delay1.feedback = knobValues[4];
 
 
     for(size_t i = 0; i < size; i++)
@@ -240,17 +437,22 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             float voice_out = 0.0;
             if (mode == 0)
                 voice_out = modalvoice.Process();
-            else {
+            else if (mode == 1) 
                 voice_out = stringvoice.Process();
+            else
+                voice_out = voice_handler.Process() * 0.5f; 
+
+            if (effect_mode == 0) {
+                float wetl, wetr;
+                verb.Process(voice_out, voice_out, &wetl, &wetr);
+                out[0][i] = (voice_out + wetl) * vlevel * 0.2;
+                out[1][i] = (voice_out + wetr) * vlevel * 0.2;
+
+            } else {
+                float delay_out = delay1.Process(voice_out);  
+                out[0][i] = (voice_out + delay_out) * vlevel * 0.2;
+                out[1][i] = (voice_out + delay_out) * vlevel * 0.2;
             }
-
-            float wetl, wetr;
-            verb.Process(voice_out, voice_out, &wetl, &wetr);
-
-
-            // Final mix
-            out[0][i] = (voice_out + wetl) * vlevel * 0.1;
-            out[1][i] = (voice_out + wetr) * vlevel * 0.1;
 
         }
     }
@@ -261,21 +463,37 @@ void OnNoteOn(float notenumber, float velocity)
     // Note Off can come in as Note On w/ 0 Velocity
     if(velocity == 0.f)
     {
-        
+        led2.Set(0.0);
+        if (mode==2)
+            voice_handler.OnNoteOff(notenumber, velocity);
     }
     else
     {
-        led2.Set(1.0);
-        // Using velocity for accent setting (striking the resonator harder)
-        modalvoice.SetAccent(velocity/128.0);
-        modalvoice.SetFreq(mtof(notenumber));
-        modalvoice.Trig();
-
-        stringvoice.SetAccent(velocity/128.0);
-        stringvoice.SetFreq(mtof(notenumber));
-        stringvoice.Trig();
+        led2.Set(0.5); // Something for the right LED to do
+        if (mode==0) {
+            // Using velocity for accent setting (striking the resonator harder)
+            modalvoice.SetAccent(velocity/128.0);
+            modalvoice.SetFreq(mtof(notenumber));
+            modalvoice.Trig();
+        } else if (mode == 1) {
+            stringvoice.SetAccent(velocity/128.0);
+            stringvoice.SetFreq(mtof(notenumber));
+            stringvoice.Trig();
+        } else {
+            voice_handler.OnNoteOn(notenumber, velocity);
+        }
     }
 }
+
+void OnNoteOff(float notenumber, float velocity)
+{
+
+    led2.Set(0.0);
+    if (mode==2)
+        voice_handler.OnNoteOff(notenumber, velocity);
+
+}
+
 
 
 // Typical Switch case for Message Type.
@@ -289,6 +507,14 @@ void HandleMidiMessage(MidiEvent m)
 
             NoteOnEvent p = m.AsNoteOn();
             OnNoteOn(p.note, p.velocity);
+        }
+        break;
+
+        case NoteOff:
+        {
+
+            NoteOffEvent p = m.AsNoteOff();
+            OnNoteOff(p.note, p.velocity);
         }
         break;
 
@@ -378,6 +604,14 @@ int main(void)
     modalvoice.Init(samplerate);
     stringvoice.Init(samplerate);
     verb.Init(samplerate);
+
+    delayLine.Init();
+    delay1.del = &delayLine;
+    delay1.delayTarget = 2400; // in samples
+    delay1.feedback = 0.0;
+    delay1.active = true;   
+
+    voice_handler.Init(samplerate);
 
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
