@@ -40,8 +40,20 @@ Neptune is very similar to the GuitarML Atlas pedal. The reverse delay is a modi
   Also, some expression pedals have a "Standard" or "Alternate/Other" mode. Funbox should work on the "Standard" mode.<br>
 
 
+### MIDI Reference
+
+| Control | MIDI CC | Value |
+| --- | --- | --- |
+| Knob 1 | 14 | 0- 127 |
+| Knob 2 | 15 | 0- 127 |
+| Knob 3 | 16 | 0- 127 |
+| Knob 4 | 17 | 0- 127 |
+| Knob 5 | 18 | 0- 127 |
+| Knob 6 | 19 | 0- 127 |
+
 ## Build
 
 Neptune runs in SRAM memory on the Daisy Seed. You must use the Bootloader to load the executable.
+Note: MIDI will not work if you use the Bootloader from the Daisy Web Programmer (it's an old version).
 
 Before building Neptune, you must build Cloudseed with ```make```

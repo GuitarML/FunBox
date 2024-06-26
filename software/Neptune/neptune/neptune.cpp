@@ -58,6 +58,9 @@ float psize, pmodify, pdelayTime, pmix;
 ExpressionHandler expHandler;
 bool expression_pressed;
 
+// Midi
+bool midi_control[6]; //  just knobs for now
+float pknobValues[6]; // Used for Midi control logic
 
 float knobValues[6];
 int toggleValues[3];
@@ -489,15 +492,49 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     //float knobValues[6];
     float newExpressionValues[6];
 
-    if (!use_preset) {  // TODO Do I want to lock out the knobs when using a preset?
-        knobValues[0] = rsize.Process();
-        knobValues[1] = mix.Process();
-        knobValues[2] = delayTime.Process();
 
-        knobValues[3] = modify.Process();
-        knobValues[4] = filter.Process();
-        knobValues[5] = delayFDBK.Process();
+    if (!use_preset) {  // TODO Do I want to lock out the knobs when using a preset?
+
+        // Knob 1
+        if (!midi_control[0])   // If not under midi control, use knob ADC
+            pknobValues[0] = knobValues[0] = rsize.Process();
+        else if (knobMoved(pknobValues[0], rsize.Process()))  // If midi controlled, watch for knob movement to end Midi control
+            midi_control[0] = false;
+
+        // Knob 2
+        if (!midi_control[1])   // If not under midi control, use knob ADC
+            pknobValues[1] = knobValues[1] = mix.Process();
+        else if (knobMoved(pknobValues[1], mix.Process()))  // If midi controlled, watch for knob movement to end Midi control
+            midi_control[1] = false;
+
+        // Knob 3
+        if (!midi_control[2])   // If not under midi control, use knob ADC
+            pknobValues[2] = knobValues[2] = delayTime.Process();
+        else if (knobMoved(pknobValues[2], delayTime.Process()))  // If midi controlled, watch for knob movement to end Midi control
+            midi_control[2] = false;
+
+        // Knob 4
+        if (!midi_control[3])   // If not under midi control, use knob ADC
+            pknobValues[3] = knobValues[3] = modify.Process();
+        else if (knobMoved(pknobValues[3], modify.Process()))  // If midi controlled, watch for knob movement to end Midi control
+            midi_control[3] = false;
+    
+
+        // Knob 5
+        if (!midi_control[4])   // If not under midi control, use knob ADC
+            pknobValues[4] = knobValues[4] = filter.Process();
+        else if (knobMoved(pknobValues[4], filter.Process()))  // If midi controlled, watch for knob movement to end Midi control
+            midi_control[4] = false;
+    
+
+        // Knob 6
+        if (!midi_control[5])   // If not under midi control, use knob ADC
+            pknobValues[5] = knobValues[5] = delayFDBK.Process();
+        else if (knobMoved(pknobValues[5], delayFDBK.Process()))  // If midi controlled, watch for knob movement to end Midi control
+            midi_control[5] = false;
+
     }
+
 
     float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
     expHandler.Process(vexpression, knobValues, newExpressionValues);
@@ -685,6 +722,68 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     }
 }
 
+
+// Typical Switch case for Message Type.
+void HandleMidiMessage(MidiEvent m)
+{
+    switch(m.type)
+    {
+        case NoteOn:
+        {
+
+            NoteOnEvent p = m.AsNoteOn();
+            // This is to avoid Max/MSP Note outs for now..
+            if(m.data[1] != 0)
+            {
+                p = m.AsNoteOn();
+                // Do stuff with the midi Note/Velocity info here
+                //osc.SetFreq(mtof(p.note));
+                //osc.SetAmp((p.velocity / 127.0f));
+            }
+        }
+        break;
+        case ControlChange:
+        {
+
+            ControlChangeEvent p = m.AsControlChange();
+            switch(p.control_number)
+            {
+                case 14:
+                    midi_control[0] = true;
+                    knobValues[0] = ((float)p.value / 127.0f);
+                    break;
+                case 15:
+                    midi_control[1] = true;
+                    knobValues[1] = ((float)p.value / 127.0f);
+                    break;
+                case 16:
+                    midi_control[2] = true;
+                    knobValues[2] = ((float)p.value / 127.0f);
+                    break;
+                case 17:
+                    midi_control[3] = true;
+                    knobValues[3] = ((float)p.value / 127.0f);
+                    break;
+                case 18:
+                    midi_control[4] = true;
+                    knobValues[4] = ((float)p.value / 127.0f);
+                    break;
+                case 19:
+                    midi_control[5] = true;
+                    knobValues[5] = ((float)p.value / 127.0f);
+                    break;
+
+
+                default: break;
+            }
+            break;
+        }
+        default: break;
+    }
+}
+
+
+
 int main(void)
 {
     float samplerate;
@@ -779,6 +878,10 @@ int main(void)
 
     update_switches = true;
 
+    // Midi
+    for( int i = 0; i < 6; ++i ) 
+        midi_control[i] = false;  
+
     // Expression
     expHandler.Init(6);
     expression_pressed = false;
@@ -797,10 +900,20 @@ int main(void)
     Settings DefaultSettings = {0.0f, 0.0f};
     SavedSettings.Init(DefaultSettings);
 
+    hw.InitMidi();
+    hw.midi.StartReceive();
+
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
     while(1)
     {
+        hw.midi.Listen();
+        // Handle MIDI Events
+        while(hw.midi.HasEvents())  // MIDI is not working for some reason, TODO figure out why??
+        {
+            HandleMidiMessage(hw.midi.PopEvent());
+        }
+
         if(trigger_save) {
 			
 	    SavedSettings.Save(); // Writing locally stored settings to the external flash
