@@ -38,6 +38,10 @@ Note: Since most Expresion pedals use 1/4" TRS cables, an adapter is required (F
 
 [Tayda Drill Template](https://drill.taydakits.com/box-designs/new?public_key=M3BDZTdRSmFWRkF4QXpQUzRORjIwQT09Cg==) (Same as version 2)
 
+The Gerber files used for ordering from PCBway have been added in GerberPCBway_Funbox_3v1.zip (note that other manufacturers may have different Gerber requirements)
+
+The Funbox v3.1 board is a shared project on OSHPark, click [here](https://oshpark.com/shared_projects/kSxr4G8c) to go to the project page for easy ordering.
+
 VERIFIED WORKING
 
 Funbox v3 uses a 125B enclosure with the same features a version 1 with the following additions:
