@@ -1,6 +1,7 @@
 #include "daisy_petal.h"
 #include "daisysp.h"
 #include "funbox.h"
+#include "delayline_2tap.h"
 
 //
 // This is a template for creating a pedal on the GuitarML Funbox_v3/Daisy Seed platform.
@@ -44,17 +45,19 @@ float pexpression = 0.0;
 
 int effect_mode = 0;
 
-// Delay
-#define MAX_DELAY static_cast<size_t>(48000 * 3.f + 1000) // 3 second max delay
-DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delayLine;
-
+// Delay Max Definitions (Assumes 48kHz samplerate)
+#define MAX_DELAY static_cast<size_t>(48000.0f * 3.f + 1000)
+DelayLine2Tap<float, MAX_DELAY> DSY_SDRAM_BSS delayLine;
+// Delay with dotted eighth and triplett options
 struct delay
 {
-    DelayLine<float, MAX_DELAY> *del;
+    DelayLine2Tap<float, MAX_DELAY> *del;
     float                        currentDelay;
     float                        delayTarget;
-    float                        feedback;
+    float                        feedback = 0.0;
     float                        active = false;
+    float                        level = 1.0;      // Level multiplier of output
+    bool                         secondTapOn = false;
     
     float Process(float in)
     {
@@ -63,13 +66,20 @@ struct delay
         del->SetDelay(currentDelay);
 
         float read = del->Read();
+
+        float secondTap = 0.0;
+        if (secondTapOn) {
+            secondTap = del->ReadSecondTap();
+        }
+
         if (active) {
             del->Write((feedback * read) + in);
         } else {
-            del->Write((feedback * read)); // if not active, don't write any new sound to buffer
+            del->Write(feedback * read); // if not active, don't write any new sound to buffer
         }
 
-        return read;
+        return (read + secondTap) * level;
+
     }
 };
 
@@ -254,9 +264,12 @@ void updateSwitch2() // left=reverb, center=delay, right=
         effect_mode = 0;
     } else if (pswitch2[1] == true) {  // right
         effect_mode = 1;
+        delay1.secondTapOn = false;
 
     } else {   // center
         effect_mode = 1;
+        delay1.secondTapOn = true;
+
     }    
 }
 
@@ -631,7 +644,8 @@ int main(void)
     delay1.del = &delayLine;
     delay1.delayTarget = 2400; // in samples
     delay1.feedback = 0.0;
-    delay1.active = true;   
+    delay1.active = true;    
+    delay1.del->set2ndTapFraction(0.75); // dotted eighth
 
     voice_handler.Init(samplerate);
 
