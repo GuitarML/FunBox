@@ -3,12 +3,13 @@
 Experiment using the DaisySP ModalVoice, StringVoice, and a synth voice. Use a midi keyboard to strike the resonator, and shape the sound with the controls.
 Added a Reverb as well.
 Monophonic (one note at a time) for modal and string, and 8 polyphony for synth.
+An expression pedal can be used to control knob 1. The expression takes control when the pedal is moved.
 
 ## Controls
 
 | Control | Description | Comment |
 | --- | --- | --- |
-| Ctrl 1 | Structure or Synth Filter |  |
+| Ctrl 1 | Structure or Synth Filter | Can be Expression controlled |
 | Ctrl 2 | Brightness |  |
 | Ctrl 3 | Level |  |
 | Ctrl 4 | Damping |  |

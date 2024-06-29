@@ -16,7 +16,7 @@ using namespace funbox;  // This is important for mapping the correct controls t
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
-Parameter structure, brightness, level, damping, verbtime, verbdamp;
+Parameter structure, brightness, level, damping, verbtime, verbdamp, expression;
 
 bool            bypass;
 
@@ -30,13 +30,16 @@ int mode = 0; // 0=modalvoice 1=stringvoice 2=synth
 
 bool first_start=true;
 
-
 Led led1, led2;
 
 // Midi
 bool midi_control[6]; // knobs 0-5
 float pknobValues[6];
 float knobValues[6];
+
+// Expression 
+bool expression_control = false;
+float pexpression = 0.0;
 
 
 int effect_mode = 0;
@@ -335,7 +338,6 @@ void UpdateSwitches()
         }
     }
 
-    first_start=false;
 
 }
 
@@ -356,10 +358,12 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     float vlevel;
 
     // Knob 1
-    if (!midi_control[0])   // If not under midi control, use knob ADC
+    if (!midi_control[0]) {  // If not under midi control or expression control, use knob ADC
         pknobValues[0] = knobValues[0] = structure.Process();
-    else if (knobMoved(pknobValues[0], structure.Process()))  // If midi controlled, watch for knob movement to end Midi control
+    } else if (knobMoved(pknobValues[0], structure.Process())) {  // If midi controlled, watch for knob movement to end Midi control
         midi_control[0] = false;
+        expression_control = false;
+    }
 
     // Knob 2
     if (!midi_control[1])   // If not under midi control, use knob ADC
@@ -391,6 +395,21 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     else if (knobMoved(pknobValues[5], verbdamp.Process()))  // If midi controlled, watch for knob movement to end Midi control
         midi_control[5] = false;
 
+
+    float vexpression = expression.Process();
+    // Expression just for knob 1
+    if (knobMoved(pexpression, vexpression)) {
+        pexpression = vexpression;
+        if (!first_start) {
+            expression_control = true;
+        }
+    }
+
+    // Overwrite knob 1 with expression value
+    if (expression_control) {
+        knobValues[0] = vexpression;
+    } 
+
     // Handle Knob Changes Here
     vlevel = knobValues[2];
 
@@ -418,6 +437,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     delay1.delayTarget = knobValues[5] * 144000; // in samples 0 to 3 second range  
     delay1.feedback = knobValues[4];
 
+    first_start=false;
 
     for(size_t i = 0; i < size; i++)
     {
@@ -528,6 +548,7 @@ void HandleMidiMessage(MidiEvent m)
 
                 case 14:
                     midi_control[0] = true;
+                    expression_control = false;
                     knobValues[0] = ((float)p.value / 127.0f);
                     break;
                 case 15:
@@ -597,9 +618,10 @@ int main(void)
     structure.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
     brightness.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
     level.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
-    damping.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::LINEAR);
+    damping.Init(hw.knob[Funbox::KNOB_4], 0.0f, 0.75f, Parameter::LINEAR); // limiting amount to 0.8 for ear safety
     verbtime.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     verbdamp.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
+    expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
 
     modalvoice.Init(samplerate);
     stringvoice.Init(samplerate);
@@ -612,6 +634,7 @@ int main(void)
     delay1.active = true;   
 
     voice_handler.Init(samplerate);
+
 
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
