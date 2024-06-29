@@ -618,7 +618,7 @@ int main(void)
     structure.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
     brightness.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::LINEAR);
     level.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
-    damping.Init(hw.knob[Funbox::KNOB_4], 0.0f, 0.75f, Parameter::LINEAR); // limiting amount to 0.8 for ear safety
+    damping.Init(hw.knob[Funbox::KNOB_4], 0.0f, 0.45f, Parameter::LINEAR); // limiting amount to 0.45 for ear safety, can hit resonance above that
     verbtime.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     verbdamp.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
     expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
