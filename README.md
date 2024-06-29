@@ -8,6 +8,8 @@ or use it as a starting place to design your own awesome pedal!
 
 Check out the [YouTube demo](https://youtu.be/e60Wy_VvJX8?si=AbR1MXqZ35HZ0Mvu) of the Mars module on Funbox.
 
+Read the [Funbox Build Guide](https://medium.com/@keyth72/funbox-build-guide-afbd8046121e) for a step by step on ordering parts, soldering and assembling the pcb and hardware, and uploading programs to the Funbox.
+
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_front.jpg)
 ![app](https://github.com/GuitarML/Funbox/blob/main/hardware/images/funbox_v3_inside.jpg)
 
