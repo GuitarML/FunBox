@@ -31,16 +31,17 @@ Funbox v2 adds MIDI In/Out via two 1/8" TRS jacks and up to a 4 dip switch array
 
 CURRENTLY UNTESTED 
 
-## Funbox v3.1
+## Funbox v3.2
 
 Funbox v3 replaces the MIDI out jack from version 2 with an Expression Input jack. 
+Version 3.2 replaces the TL072 Quad Op Amp with a MCP6024 for reduced noise.
 Note: Since most Expresion pedals use 1/4" TRS cables, an adapter is required (Female 1/4" to Male 1/8" stereo adapter, or 1/4" to 1/8" TRS cable.)
 
 [Tayda Drill Template](https://drill.taydakits.com/box-designs/new?public_key=M3BDZTdRSmFWRkF4QXpQUzRORjIwQT09Cg==) (Same as version 2)
 
-The Gerber files used for ordering from PCBway have been added in GerberPCBway_Funbox_3v1.zip (note that other manufacturers may have different Gerber requirements)
+The Gerber files used for ordering from PCBway have been added in GerberSeed_PCBway_Funbox_v3p2.zip (note that other manufacturers may have different Gerber requirements)
 
-The Funbox v3.1 board is a shared project on OSHPark, click [here](https://oshpark.com/shared_projects/kSxr4G8c) to go to the project page for easy ordering.
+The Funbox v3.2 board is a shared project on OSHPark, click [here](https://oshpark.com/shared_projects/MnthZS4N) to go to the project page for easy ordering.
 
 VERIFIED WORKING
 
