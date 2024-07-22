@@ -8,8 +8,8 @@ or use it as a starting place to design your own awesome pedal!
 
 Video Demos on YouTube:
 
-[Mars Amp Sim/Delay](https://youtu.be/e60Wy_VvJX8?si=AbR1MXqZ35HZ0Mvu), [Jupiter Reverb Shaper](https://youtu.be/iQnR0dN56QY?si=inZRtJW6ivPTOBN7)
-[Neptune Reverb/Delay](https://youtu.be/nuLmwTXF1v8?si=5k8mRED5zVJWO6t1), [Pluto Dual Looper](https://youtu.be/xCFR0EeIMSg?si=6pakTC9j9leRP9t6)
+[Mars Amp Sim/Delay](https://youtu.be/e60Wy_VvJX8?si=AbR1MXqZ35HZ0Mvu), [Jupiter Reverb Shaper](https://youtu.be/iQnR0dN56QY?si=inZRtJW6ivPTOBN7),
+[Neptune Reverb/Delay](https://youtu.be/nuLmwTXF1v8?si=5k8mRED5zVJWO6t1), [Pluto Dual Looper](https://youtu.be/xCFR0EeIMSg?si=6pakTC9j9leRP9t6),
 [MidiKeys Synth](https://youtu.be/qRBMoK8jLx0?si=yauST03D38Y4MzrH)
 
 Read the [Funbox Build Guide](https://medium.com/@keyth72/funbox-build-guide-afbd8046121e) for a step by step on ordering parts, soldering and assembling the pcb and hardware, and uploading programs to the Funbox.
