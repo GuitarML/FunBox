@@ -85,16 +85,17 @@ float window_samples = 32768; // This is the buffsize
 float interval_samples = ceil(window_samples/laps);
 
 bool freeze = false;
+int shimmer_mode = 0;
 
 void updateSwitch1() // left=, center=, right=
 {
-    if (pswitch1[0] == true) {  // left
+    if (pswitch1[0] == true) {  // left  octave up
+        shimmer_mode = 0;
+    } else if (pswitch1[1] == true) {  // right  octave up and octave down
+        shimmer_mode = 2;
 
-    } else if (pswitch1[1] == true) {  // right
-
-
-    } else {   // center
-
+    } else {   // center octave down
+        shimmer_mode = 1;  
     }      
 }
 
@@ -304,8 +305,6 @@ inline void reverb(const float* in, float* out)
 
             // Add random phase reverb energy
             float random_phase = rand()*2*PI;
-            //real += reverb_amp * cos(random_phase);
-            //imag += reverb_amp * sin(random_phase);
             real = reverb_amp * cos(random_phase);
             imag = reverb_amp * sin(random_phase);
 
@@ -322,22 +321,31 @@ inline void reverb(const float* in, float* out)
                 float current = reverb_energy[i];   // NOTE reverb_energy is size 2048
                 if (i > 0 && i < half_fft_size - 2) {  // Prevents accessing outside of array index, from i= 2 to 1022
                     
-                    // Morph reverb up by octaves 
-                    reverb_energy[2*i - 1] += 0.25*shimmer_double*current;
-                    reverb_energy[2*i] += 0.5*shimmer_double*current;
-                    reverb_energy[2*i + 1] += 0.25*shimmer_double*current;
+                    // Morph reverb up by octaves up or down
+                    if (shimmer_mode == 0 || shimmer_mode == 2) { // up octave
+                        reverb_energy[2*i - 1] += 0.123*shimmer_double*current;
+                        reverb_energy[2*i] += 0.25*shimmer_double*current;
+                        reverb_energy[2*i + 1] += 0.123*shimmer_double*current;
+                    } else if ((shimmer_mode == 1 || shimmer_mode == 2) && i > 1 && !(i % 2)) { // down octave, !(i % 2) this checks if i is even for indexing
+                        reverb_energy[i/2 - 1] += 0.75*shimmer_double*current;
+                        reverb_energy[i/2] += 1.5* shimmer_double*current;
+                        reverb_energy[i/2 + 1] += 0.75*shimmer_double*current;
+                        //reverb_energy[2*i - 3] += 0.25*shimmer_double*current;  // This makes a slowly downtuned octave up
+                        //reverb_energy[2*i - 2] += 0.5*shimmer_double*current;
+                        //reverb_energy[2*i - 1] += 0.25*shimmer_double*current;
+                    }
 
                     // Morph reverb up by octave+5th
                     if (3*i + 1 < half_fft_size) {
 
-                        reverb_energy[3*i - 2] += 0.11*shimmer_triple*current;
-                        reverb_energy[3*i - 1] += 0.22*shimmer_triple*current;
-                        reverb_energy[3*i] += 0.34*shimmer_triple*current;
-                        reverb_energy[3*i + 1] += 0.22*shimmer_triple*current;
-                        reverb_energy[3*i + 2] += 0.21*shimmer_triple*current;
+                        reverb_energy[3*i - 2] += 0.055*shimmer_triple*current;
+                        reverb_energy[3*i - 1] += 0.11*shimmer_triple*current;
+                        reverb_energy[3*i] += 0.17*shimmer_triple*current;
+                        reverb_energy[3*i + 1] += 0.11*shimmer_triple*current;
+                        reverb_energy[3*i + 2] += 0.105*shimmer_triple*current;
 
                     }
-                }
+                } 
                 reverb_energy[i] = shimmer_remainder*current;
             }
 
@@ -354,7 +362,7 @@ int main(void)
 {
 
     hw.Init();
-    hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_32KHZ); 
+    hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_32KHZ); // Currently needs to run at 32kHz and block size 256 to keep up with processing
     samplerate = hw.AudioSampleRate();
 
     hw.SetAudioBlockSize(256); // matching original code at 256, TODO test lower latency settings from note:
