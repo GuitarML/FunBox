@@ -61,7 +61,8 @@ Improving the efficiency of the STFT to run at higher samplerates and lower buff
 
 Venus runs in Flash memory on the Daisy Seed.
 
-##Acknowledgements:
+## Acknowledgements
+
 This code adapts the code found here to run a STFT on the Daisy Seed:
 https://github.com/amcerbu/DaisySTFT
 
