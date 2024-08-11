@@ -52,6 +52,7 @@ Planet Series
 - [Venus](https://github.com/GuitarML/Funbox/blob/main/software/Venus): A Spectral Reverb using a FFT to create shimmery, ethereal soundscapes.
 - [Mars](https://github.com/GuitarML/Funbox/blob/main/software/Mars): An amp sim/delay using neural models and Impulse Responses and three delay modes.
 - [Jupiter](https://github.com/GuitarML/Funbox/blob/main/software/Jupiter): A Reverb with a focus on EQ for shaping the sound.
+- [Saturn](https://github.com/GuitarML/Funbox/blob/main/software/Saturn): A Spectral delay using a FFT to delay different frequencies individually.
 - [Neptune](https://github.com/GuitarML/Funbox/blob/main/software/Neptune): A Reverb/Delay capable of ethereal sounds.
 - [Pluto](https://github.com/GuitarML/Funbox/blob/main/software/Pluto): A Dual/Stereo looper with variable speed/direction control and real time loop effects.
 
