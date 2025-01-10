@@ -50,7 +50,9 @@ Component values are printed on the board for easy assembly! (OSHPark render sho
 The following pedal modules are provided here:
 
 Planet Series
+- [Mercury](https://github.com/GuitarML/Funbox/blob/main/software/Mercury): An amp emulator running NAM Neural Amp Modeler and a 4 band EQ.
 - [Venus](https://github.com/GuitarML/Funbox/blob/main/software/Venus): A Spectral Reverb using a FFT to create shimmery, ethereal soundscapes.
+- [Earth](https://github.com/GuitarML/Funbox/blob/main/software/Earth): A Plate Reverb with octave and overdrive effects.
 - [Mars](https://github.com/GuitarML/Funbox/blob/main/software/Mars): An amp sim/delay using neural models and Impulse Responses and three delay modes.
 - [Jupiter](https://github.com/GuitarML/Funbox/blob/main/software/Jupiter): A Reverb with a focus on EQ for shaping the sound.
 - [Saturn](https://github.com/GuitarML/Funbox/blob/main/software/Saturn): A Spectral delay using a FFT to delay different frequencies individually.
