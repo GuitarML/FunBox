@@ -7,3 +7,15 @@
 [submodule "RTNeural"]
 	path = RTNeural
 	url = https://github.com/jatinchowdhury18/RTNeural.git
+[submodule "q"]
+	path = q
+	url = https://github.com/cycfi/q.git
+[submodule "eigen"]
+	path = eigen
+	url = https://gitlab.com/libeigen/eigen
+[submodule "gcem"]
+	path = gcem
+	url = https://github.com/kthohr/gcem.git
+[submodule "infra"]
+	path = infra
+	url = https://github.com/cycfi/infra.git
