@@ -11,7 +11,7 @@ Video Demos on YouTube:
 [Mars Amp Sim/Delay](https://youtu.be/e60Wy_VvJX8?si=AbR1MXqZ35HZ0Mvu), [Jupiter Reverb Shaper](https://youtu.be/iQnR0dN56QY?si=inZRtJW6ivPTOBN7),
 [Neptune Reverb/Delay](https://youtu.be/nuLmwTXF1v8?si=5k8mRED5zVJWO6t1), [Pluto Dual Looper](https://youtu.be/xCFR0EeIMSg?si=6pakTC9j9leRP9t6),
 [Venus Spectral Reverb](https://youtu.be/IHFEQsWR4W4?si=BbFsI6RXE-6vq7Sy), [Saturn Spectral Delay](https://youtu.be/adQQrBSwXU4?si=lk55HOxCmDiPBn_s),
-[MidiKeys Synth](https://youtu.be/qRBMoK8jLx0?si=yauST03D38Y4MzrH), 
+[MidiKeys Synth](https://youtu.be/qRBMoK8jLx0?si=yauST03D38Y4MzrH), [Mercury Amp Emulator](https://youtu.be/-yD2pLMCNi4?si=rLxFXH2HT4IHW6-g)
 
 Read the [Funbox Build Guide](https://medium.com/@keyth72/funbox-build-guide-afbd8046121e) for a step by step on ordering parts, soldering and assembling the pcb and hardware, and uploading programs to the Funbox.
 
