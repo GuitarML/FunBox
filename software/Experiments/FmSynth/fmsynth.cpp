@@ -453,8 +453,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateButtons();
     UpdateSwitches();
 
-    float vlevel;
-
     // Knob 1
     if (!midi_control[0]) {  // If not under midi control or expression control, use knob ADC
         pknobValues[0] = knobValues[0] = level.Process();
@@ -463,11 +461,12 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     }
 
     // Knob 2
-    if (!midi_control[1])   // If not under midi control, use knob ADC
+    if (!midi_control[1]) { // If not under midi control, use knob ADC
         pknobValues[1] = knobValues[1] = modlevel.Process();
-    else if (knobMoved(pknobValues[1], modlevel.Process()))  // If midi controlled, watch for knob movement to end Midi control
+    } else if (knobMoved(pknobValues[1], modlevel.Process())) { // If midi controlled, watch for knob movement to end Midi control
         midi_control[1] = false;
         expression_control = false;
+    }
 
     // Knob 3
     if (!midi_control[2])   // If not under midi control, use knob ADC
