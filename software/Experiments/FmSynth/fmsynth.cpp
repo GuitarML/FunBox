@@ -25,7 +25,7 @@ bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
 int             switch1[2], switch2[2], switch3[2], dip[4];
 
 
-int mode = 0; // 0=modalvoice 1=stringvoice 2=synth
+int mode = 0; // currently unused
 
 bool first_start=true;
 
@@ -41,7 +41,7 @@ bool expression_control = false;
 float pexpression = 0.0;
 
 
-int effect_mode = 0;
+int effect_mode = 0; // currently unused
 
 float led2_brightness = 0.0;
 
@@ -314,9 +314,7 @@ class VoiceManager
 
 
 
-static VoiceManager<18> voice_handler;  //  moved param changing to outside function, can run 18 (125B pedal SRAM, can Flash handle more?)
-
-
+static VoiceManager<18> voice_handler;
 
 
 bool knobMoved(float old_value, float new_value)
@@ -514,29 +512,29 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     voice_handler.SetCarrierLevel(knobValues[0]);
 
     // Knob 2 is Modulator level
-    voice_handler.SetModulatorLevel(knobValues[1]);
+    voice_handler.SetModulatorLevel(knobValues[1] * knobValues[1]);
 
     // Knob 3 is Modulator Ratio, 0.5 to 16 by increments of 0.5
-    float temp = knobValues[2] * 2; // scale 0 to 16... 0 to 32
+    float temp = knobValues[2] * 32; // scale 0 to 16... 0 to 32
     int temp2 = static_cast<int>(temp); // round by converting to int
     float temp3 = static_cast<float>(temp2);
     float float_val = temp3 / 2.0; // 0 to 16 increments of 0.5
-    voice_handler.SetModulatorRatio(float_val);  
+    voice_handler.SetModulatorRatio(float_val + 0.5);  
 
     // Knob 4 is labeled "Attack", but here controls both attack and release time of both modulator and carrier.
     //  Design choice for control simplicity. Could split out these controls to have a larger range of sounds.
-    voice_handler.SetCarrierAttack(knobValues[3]);
-    voice_handler.SetModAttack(knobValues[3]);
-    voice_handler.SetCarrierDecay(knobValues[3]);
-    voice_handler.SetModDecay(knobValues[3]);
+    voice_handler.SetCarrierAttack(knobValues[3] * 0.99 + 0.01);
+    voice_handler.SetModAttack(knobValues[3] * 0.99 + 0.01);
+    voice_handler.SetCarrierDecay(knobValues[3] * 0.99 + 0.01);
+    voice_handler.SetModDecay(knobValues[3] * 0.99 + 0.01);
 
     // Knob 5 is sustain level for both the carrier and modulator
-    voice_handler.SetCarrierSustain(knobValues[4]);
-    voice_handler.SetModSustain(knobValues[4]);
+    voice_handler.SetCarrierSustain(knobValues[4] * 0.99 + 0.01);
+    voice_handler.SetModSustain(knobValues[4] * 0.99 + 0.01);
 
     // Knob 6 is release time for both carrier and modulator
-    voice_handler.SetCarrierRelease(knobValues[5]);
-    voice_handler.SetModRelease(knobValues[5]);  
+    voice_handler.SetCarrierRelease(knobValues[5] * 0.99 + 0.01);
+    voice_handler.SetModRelease(knobValues[5] * 0.99 + 0.01);  
 
     first_start=false;
 
@@ -555,7 +553,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         {   
             // Something to do with the right LED, sets brightness to 1.0 when key pressed,
             //   fades back to 0.0 over time.
-            fonepole(led2_brightness, 0.0, .00002f * knobValues[3]); // TODO I think this will decay the brightness about the same rate as the note
+            fonepole(led2_brightness, 0.0, .0002f); // TODO I think this will decay the brightness about the same rate as the note
             led2.Set(led2_brightness);
             led2.Update();
 
@@ -687,11 +685,11 @@ int main(void)
     pdip[3]= false;
 
 
-    level.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::LINEAR);
-    modlevel.Init(hw.knob[Funbox::KNOB_2], 0.0f, 0.6f, Parameter::EXPONENTIAL);
-    modratio.Init(hw.knob[Funbox::KNOB_3], 0.5f, 16.0f, Parameter::LINEAR); 
+    level.Init(hw.knob[Funbox::KNOB_1], 0.0f, 1.0f, Parameter::EXPONENTIAL);   // TODO Maybe just do normal level control, keep carrier level constant
+    modlevel.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, Parameter::EXPONENTIAL);
+    modratio.Init(hw.knob[Funbox::KNOB_3], 0.0f, 1.0f, Parameter::LINEAR); 
     attack.Init(hw.knob[Funbox::KNOB_4], 0.0f, 1.0f, Parameter::EXPONENTIAL);
-    sustain.Init(hw.knob[Funbox::KNOB_5], 0.01f, 1.0f, Parameter::LINEAR);
+    sustain.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LINEAR);
     release.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR); 
     expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
 
