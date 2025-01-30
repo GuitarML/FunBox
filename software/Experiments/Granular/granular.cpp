@@ -26,10 +26,10 @@ int             switch1[2], switch2[2], switch3[2], dip[4];
 
 int mode = 0; // 0=modalvoice 1=stringvoice 2=synth
 
-#define MAX_SAMPLE static_cast<int>(96000.0) // 2 second sample, continually updating with live audio
+#define MAX_SAMPLE static_cast<int>(48000.0 * 4) // 4 second sample, continually updating with live audio
 #define MAX_SAMPLE_SIZET static_cast<size_t>(MAX_SAMPLE) // 2 second sample, continually updating with live audio
-//float DSY_SDRAM_BSS audioSample[MAX_SAMPLE];  // Need to initialize this to all 0's
-float audioSample[MAX_SAMPLE_SIZET];  // Not sure if this needs to be manually initialized to 0's if not in SDRAM, but doing it in main() just in case
+float DSY_SDRAM_BSS audioSample[MAX_SAMPLE_SIZET];  // Need to initialize this to all 0's
+//float audioSample[MAX_SAMPLE_SIZET];  // Not sure if this needs to be manually initialized to 0's if not in SDRAM, but doing it in main() just in case
 
 GranularPlayer granular;
 int sample_index;
@@ -53,6 +53,8 @@ float pexpression = 0.0;
 int effect_mode = 0;
 
 float led2_brightness = 0.0;
+
+int counter = 0;
 
 
 bool knobMoved(float old_value, float new_value)
@@ -255,7 +257,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     // Handle Knob Changes Here
 
  
-    float vgrain_size = knobValues[0]*199 + 1; // 1 to 200ms grain size
+    float vgrain_size = knobValues[0]*599 + 1; // 1 to 600ms grain size
     float vspeed = knobValues[1] * 4.0 - 2.0;  // -2 to +2 speed
 
     // Set pitch in semitones, -12 to + 12 (+/- 1 octave)
@@ -291,12 +293,12 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             // Update the sample buffer if not in freeze mode
             if (trigger) {
                 float multiplier = 1.0;
-
+                float fade_len_float = static_cast<float>(fade_length);
                 if (sample_index < fade_length) { // fade in
-                    multiplier = sample_index / fade_length; // 0 to 1
+                    multiplier = sample_index / fade_len_float; // 0 to 1
 
                 } else if (sample_index > (MAX_SAMPLE - fade_length)) { // fade out
-                    multiplier = (MAX_SAMPLE - sample_index) / fade_length;  //  1 to 0
+                    multiplier = (MAX_SAMPLE - sample_index) / fade_len_float;  //  1 to 0  // Might be missing last index, (maxsample-1)
 
                 }
 
@@ -308,6 +310,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                     trigger = false;
                     led2.Set(0.0);
                     led2.Update();
+                    counter = 0;
                 }
             }
 
@@ -317,9 +320,18 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 \param transposition transposition in cents. 100 cents is one semitone. Negative values transpose down, positive values transpose up.
                 \param grain_size grain size in milliseconds. 1 is 1 millisecond, 1000 is 1 second. Does not accept negative values. Minimum value is 1.
             */
-            float gran_out = granular.Process(vspeed, vpitch, vgrain_size);            
+            float gran_out = 0.0;
+            if (!trigger)
+                gran_out = granular.Process(vspeed, vpitch, vgrain_size);  
 
-            out[0][i] = out[1][i] = (gran_out * vmix + input * (1.0 - vmix)) * vlevel * 2.0; 
+            //FOR TROUBLESHOOTING TO CHECK NORMAL SAMPLE PLAYBACK
+            //float gran_out = audioSample[counter];    
+            //counter+=1;    
+            //if (counter == MAX_SAMPLE) {
+            //    counter = 0;
+            //}
+
+            out[0][i] = out[1][i] = (gran_out * vmix + input * (1.0 - vmix)) * vlevel * 4.0; 
 
         }
     }
@@ -362,7 +374,7 @@ int main(void)
 
     sample_index = 0;
     trigger = false;
-    fade_length = 1000;  // TODO Can probably shorten this significantly, right now set at about 20ms fade in/out
+    fade_length = 8000; 
 
     for(int i = 0; i < MAX_SAMPLE; i++) { // hard coding sample length for now
         audioSample[i] = 0.;
