@@ -1,6 +1,6 @@
 #include "operator.h"
 
-///////////////////////////////////////////// FM Synth
+///////////// 2 Operator FM Synth (Modulator --> Carrier) with ADSR envelopes for each operator
 class Voice
 {
   public:

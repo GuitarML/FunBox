@@ -3,6 +3,7 @@
 #include "funbox.h"
 #include "granularplayermod.h"
 #include "fm_synth_2op.h"
+#include "expressionHandler.h"
 #include <q/fx/envelope.hpp>
 
 //
@@ -40,12 +41,12 @@ int             switch1[2], switch2[2], switch3[2], dip[4];
 
 float      current_grainsize; //for smoothing the size param
 
-int mode = 0; // 0=modalvoice 1=stringvoice 2=synth
+int mode = 0; // Sets the envelope mode with 2nd toggle
 
 #define MAX_SAMPLE static_cast<int>(48000.0 / 2) // 0.5 second sample (delay), continually updating with live audio
 #define MAX_SAMPLE_SIZET static_cast<size_t>(MAX_SAMPLE) 
 //float DSY_SDRAM_BSS audioSample[MAX_SAMPLE_SIZET];  // Need to initialize this to all 0's
-float audioSample[MAX_SAMPLE_SIZET];  // Need to initialize this to all 0's
+float audioSample[MAX_SAMPLE_SIZET];  
 
 
 GranularPlayerMod swarm[2];
@@ -76,9 +77,10 @@ bool midi_control[6]; // knobs 0-5
 float pknobValues[6];
 float knobValues[6];
 
-// Expression 
-bool expression_control = false;
-float pexpression = 0.0;
+
+// Expression
+ExpressionHandler expHandler;
+bool expression_pressed;
 
 int effect_mode = 0;
 int synth_mode = 0;
@@ -162,37 +164,59 @@ void UpdateButtons()
     // (De-)Activate bypass and toggle LED when left footswitch is let go
     if(hw.switches[Funbox::FOOTSWITCH_1].FallingEdge())
     {
-        if (alternateMode) {
-            alternateMode = false;
-            force_reset = true; // force parameter reset to enforce current knob settings when leaving alternate mode
-            led1.Set(1.0f);
-        } else {
-            bypass = !bypass;
-            led1.Set(bypass ? 0.0f : 1.0f);
+        if(!expression_pressed) {
+            if (alternateMode) {
+                alternateMode = false;
+                force_reset = true; // force parameter reset to enforce current knob settings when leaving alternate mode
+                led1.Set(1.0f);
+            } else {
+                bypass = !bypass;
+                led1.Set(bypass ? 0.0f : 1.0f);
+            }
         }
-    }
+        expression_pressed = false;
+    } 
 
     // Toggle Alternate mode by holding down the left footswitch, if not already in alternate mode and not in bypass
-    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 400 && !alternateMode && !bypass) {
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 600 && !alternateMode && !bypass && !hw.switches[Funbox::FOOTSWITCH_2].Pressed() && !expression_pressed) {
         alternateMode = true;
         led1.Set(0.5f);  // Dim LED in alternate mode
     }
 
-    led1.Update();
+
+    // Toggle Expression mode by holding down both footswitches for half a second
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 500 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 500 && !expression_pressed ) {
+        expHandler.ToggleExpressionSetMode();
+
+        if (expHandler.isExpressionSetMode()) {
+            led1.Set(expHandler.returnLed1Brightness());  // Dim LEDs in expression set mode
+            led2.Set(expHandler.returnLed2Brightness());  // Dim LEDs in expression set mode
+
+        } else {
+            led1.Set(bypass ? 0.0f : 1.0f); 
+            led2.Set(0.0f);  
+        }
+        expression_pressed = true; // Keeps it from switching over and over while held
+    }
+
+
+    // Clear Expression settings by holding down both footswitches for 2 seconds
+    if(hw.switches[Funbox::FOOTSWITCH_1].TimeHeldMs() >= 2000 && hw.switches[Funbox::FOOTSWITCH_2].TimeHeldMs() >= 2000) {
+        expHandler.Reset();
+        led1.Set(bypass ? 0.0f : 1.0f); 
+        led2.Set(0.0f); 
+    }
+
 
     // Hold current sample when activated (half led brightness when held)
-    if(hw.switches[Funbox::FOOTSWITCH_2].RisingEdge())
+    if(hw.switches[Funbox::FOOTSWITCH_2].FallingEdge() && !expression_pressed)
     {
         hold = !hold;
         led2.Set(hold ? 1.0 : 0.0);
-
-
     }
 
+    led1.Update();
     led2.Update();
-
-    // TODO Add standard set expression action (neptune as template with alt mode)
-
 }
 
 
@@ -258,6 +282,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     UpdateButtons();
     UpdateSwitches();
 
+    float newExpressionValues[6];
 
     // Knob 1
     if (!midi_control[0]) {  // If not under midi control or expression control, use knob ADC
@@ -271,7 +296,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         pknobValues[1] = knobValues[1] = mix.Process();
     } else if (knobMoved(pknobValues[1], mix.Process())) {  // If midi controlled, watch for knob movement to end Midi control
         midi_control[1] = false;
-        expression_control = false;
+
     }
 
     // Knob 3
@@ -300,29 +325,27 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         midi_control[5] = false;
 
 
-    float vexpression = expression.Process();
-    // Expression just for knob 1
-    if (knobMoved(pexpression, vexpression)) {
-        pexpression = vexpression;
-        if (!first_start) {
-            expression_control = true;
-        }
-    }
+    float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
+    expHandler.Process(vexpression, knobValues, newExpressionValues);
 
-    // Overwrite knob 2 with expression value (only using one parameter for expression here: mod level)
-    // No "Set Expression Mode", activates when expression plugged in, deactivates when knob 2 moved
-    // TODO Update with full expression controls
-    if (expression_control) {
-        knobValues[1] = vexpression;
-    } 
+    // If in expression set mode, set LEDS accordingly
+    if (expHandler.isExpressionSetMode()) {
+        led1.Set(expHandler.returnLed1Brightness());
+        led2.Set(expHandler.returnLed2Brightness());
+    }
+  
+    float vgrain_size = newExpressionValues[0] * 300 + 1; // 1 to 300ms grain size
+    float vmix = newExpressionValues[1];
+    float vpitch_raw = newExpressionValues[2];
+    float vfeedback = newExpressionValues[3];
+    float vwidth = newExpressionValues[4] * 50.0; // Width of 50ms;
+    float vspeed_raw = newExpressionValues[5];
+
 
     // Handle Knob Changes Here
 
-    float vgrain_size = knobValues[0]*300 + 1; // 1 to 300ms grain size
-
-
     // Mix and Alternate Stereo Spread /////////////
-    float vmix = knobValues[1];
+
     if (knobMoved(pmix, vmix) || force_reset == true) {
         // Handle Normal or Alternate Mode Mix Controls
         //    A cheap mostly energy constant crossfade from SignalSmith Blog
@@ -350,8 +373,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     // Set pitch in semitones, -12 to + 12 (+/- 1 octave) //////////////
     //  or Alternate Mode LFO Depth
 
-    float vpitch_raw = knobValues[2];
-
     if (knobMoved(ppitch_raw, vpitch_raw) || force_reset == true) {
 
         if (alternateMode == false) {
@@ -365,12 +386,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         ppitch_raw = vpitch_raw;
     }
 
-    float vfeedback = knobValues[3];
-
-    float vwidth = knobValues[4] * 50.0; // Width of 50ms
-
     // Set Grain Speed or Alternate Mode LFO Frequency ////////////////
-    float vspeed_raw = knobValues[5];
 
     if (knobMoved(pspeed_raw, vspeed_raw) || force_reset == true) {
 
@@ -387,6 +403,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     first_start=false;
     force_reset = false;
 
+    // Process the Audio Buffer //
     for(size_t i = 0; i < size; i++)
     {
         // Process your signal here
@@ -533,7 +550,6 @@ void HandleMidiMessage(MidiEvent m)
                 // Knob Controls //////////////////////////////
                 case 14: {
                     midi_control[0] = true;
-                    expression_control = false;
                     knobValues[0] = ((float)p.value / 127.0f);
                     break;
                 }
@@ -692,24 +708,22 @@ int main(void)
     sample_index = 0;
     counter = 0;
 
-
-    for(int i = 0; i < MAX_SAMPLE; i++) { // hard coding sample length for now
-        audioSample[i] = 0.;
-    }
+    // I dont think this is needed after moving buffer from SDRAM to SRAM TODO Verify that
+    //for(int i = 0; i < MAX_SAMPLE; i++) { // hard coding sample length for now
+    //    audioSample[i] = 0.;
+    //}
 
     /** Initializes the GranularPlayer module.
         \param sample pointer to the sample to be played
         \param size number of elements in the sample array
         \param sample_rate audio engine sample rate
     */
-    // Using a 2 GranularPlayers, or 4 individual grains.
-    // 10 (20 total grains) seems to be hitting a processing limit
-    // Can handle more that 2 granular players, but going for a 
-    // more sparse sound with this effect.
+    // Using a 2 GranularPlayers, which is 4 individual grains.
+    // 10 (20 total grains) seems to be hitting a processing limit on Daisy Seed
+    // Can handle more than 2 granular players, but going for a 
+    // more sparse sound with Uranus.
     swarm[0].Init(audioSample, MAX_SAMPLE, samplerate, 0.0, 0.5);
     swarm[1].Init(audioSample, MAX_SAMPLE, samplerate, 0.25, 0.75);
-    //swarm[2].Init(audioSample, MAX_SAMPLE, samplerate, 0.125, 0.625);
-    //swarm[3].Init(audioSample, MAX_SAMPLE, samplerate, 0.375, 0.875);
 
 
     // monophonic granular synth envelope
@@ -744,14 +758,13 @@ int main(void)
         swarm[j].setStereoSpread(0.4);
     }
 
-
     pmix = 0.5;            
     wetMix = 0.7;
     dryMix = 0.7; 
 
     // LFO For Pitch Modulation
     LFO.Init(samplerate);
-    LFO.SetFreq(0.25); // try range 0 to 5 ( TODO Try exponential here? for more lower freq range)
+    LFO.SetFreq(0.25); 
     LFO.SetWaveform(0); // Sine wave
     LFO.SetAmp(2.0); // 
     LFO_depth = 0.0;   // 0 to 200 (2 semitones)
@@ -770,7 +783,6 @@ int main(void)
     speed.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR);
     expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
 
-
     // Init the LEDs and set activate bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1),false);
     led1.Update();
@@ -779,6 +791,14 @@ int main(void)
     led2.Init(hw.seed.GetPin(Funbox::LED_2),false);
     led2.Update();
     hold = false;
+
+    // Expression
+    expHandler.Init(6);
+    expression_pressed = false;
+
+    // Midi
+    for( int i = 0; i < 6; ++i ) 
+        midi_control[i] = false;  
 
     hw.InitMidi();
     hw.midi.StartReceive();

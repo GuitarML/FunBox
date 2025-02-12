@@ -9,7 +9,6 @@ void Operator::Init(float samplerate, bool isCarrier)
     //init oscillators
     osc_.Init(samplerate);
 
-    //set some reasonable values
     lfreq_ = freq_ = 440.f;
     lratio_ = ratio_ = 2.f;
     SetFrequency(lfreq_);
@@ -62,7 +61,7 @@ void Operator::SetLevel(float level)
     level_ = fabsf(level);
 }
 
-void Operator::setPhaseInput(float modval) // TODO should I use this function to just do the osc phase add instead?
+void Operator::setPhaseInput(float modval)
 {
     modval_ = modval;
 }

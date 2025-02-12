@@ -4,7 +4,15 @@ Copyright (c) 2020 Electrosmith, Corp, Vinícius Fernandes
 Use of this source code is governed by an MIT-style
 license that can be found in the LICENSE file or at
 https://opensource.org/licenses/MIT.
-*/
+
+ GranularPlayer class modified by K. Bloemer 2025 (renamed to GranularPlayerMod)
+  Changes:
+  - Applies the envelope to the individual grains instead of the whole audio sample
+  - Adds two additional envelopes (fast attack and slow attack, linear), and envelopes now use 512 points instead of 256
+  - Adds a stereo spread for each grain and left/right output getter functions
+  - Adds the ability to change the effective audio sample size 
+  - Adds "width" parameter that starts grains at a random point within the timeframe set by width param (in milliseconds)
+*/ 
 
 #pragma once
 #ifndef DSY_GRANULARPLAYERMOD_H
