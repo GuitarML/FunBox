@@ -10,6 +10,7 @@ The Planet Series are what I would consider to be ready-to-go guitar pedals.
  - Jupiter : A stereo reverb with tons of customization.
  - Saturn  : A stereo spectral delay that diffracts your signal into particles.
  - Neptune : A stereo reverb/delay capable of ethereal sounds.
+ - Uranus  : A granular delay and FM synth.
  - Pluto   : A wacky Dual/Stereo Looper with speed/direction controls. 
 
 "Experiments" includes tests that might be interesting, but are not necessarily a polished product.
