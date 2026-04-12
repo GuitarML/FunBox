@@ -44,7 +44,7 @@ float           currentSpeedB;
 bool isPlaybackA, isPlaybackB;
 
 // Reverb
-ReverbSc96        verb;  // Minor change to ReverbSc to use 96kHz default samplerate
+ReverbSc          verb;
 
 Tone toneA;       // Low Pass
 ATone toneHPA;    // High Pass
@@ -70,8 +70,8 @@ Led led1, led2;
 // Expression
 ExpressionHandler expHandler;
 bool expression_pressed;
-float knobValues[6];
-float pknobValues[6];
+float knobValues[7];  // 0-5 knobs, 6 expression
+float pknobValues[7]; // 0-5 knobs, 6 expression
 
 // Midi
 bool midi_control[16]; // knobs 0-5, expression 6, switches 7-15 (three for each switch, first is true/false under midi control, second and third are switch values)
@@ -384,12 +384,15 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     
 
 
-    // Expression  // TODO Not working, need to fix logic
-    if (!midi_control[6])   // If not under midi control, use expression pedal input
+    // Expression
+    if (!midi_control[6]) {  // If not under midi control, use expression pedal input
         pknobValues[6] = expression.Process();
-     else if (knobMoved(pknobValues[6], expression.Process()))  // If midi controlled, watch for knob movement to end Midi control
+    } else if (knobMoved(pknobValues[6], expression.Process())) {  // If midi controlled, watch for pedal movement to end Midi control
         midi_control[6] = false;
-    
+    } else {
+        pknobValues[6] = knobValues[6];  // Apply MIDI expression value (CC 100)
+    }
+
 
     //float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
     //expHandler.Process(vexpression, knobValues, newExpressionValues);
@@ -822,11 +825,11 @@ int main(void)
 
     hw.Init(); 
     
-    hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_96KHZ);  // Test raising the samplerate to have higher fidelity at slower playback speeds
+    hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);  // Test raising the samplerate to have higher fidelity at slower playback speeds
                                                                         // ReverbSC doesn't work running at 96kHz, TODO look into getting this working
     samplerate = hw.AudioSampleRate();  
 
-    hw.SetAudioBlockSize(48);
+    hw.SetAudioBlockSize(1);
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
     switch1[1]= Funbox::SWITCH_1_RIGHT;
