@@ -17,3 +17,6 @@ The Planet Series are what I would consider to be ready-to-go guitar pedals.
 
 The files in the "Template" directory serve as a starting place for developing your own effects. 
 
+The Dwarf Planet Series are experimental effects exploring new territory.
+- Ceres   : An envelope filter with synthy waveshape distortion and resonant filter.
+
