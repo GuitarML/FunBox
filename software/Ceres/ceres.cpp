@@ -18,6 +18,9 @@
 // Switch 1:       Mode select (left=Waveshape, center=Wavefold, right=Phaser)
 // Footswitch 1:   Bypass
 //
+// Expression pedal (v3 board): Directly controls envelope (overrides input envelope follower)
+// MIDI CC19:                   Directly controls envelope (overrides input envelope follower)
+//
 
 #include "daisy_petal.h"
 #include "daisysp.h"
@@ -37,6 +40,8 @@ Parameter pFreq, pRes, pSense, param4, param5, pLevel;
 Parameter pFreqWF, pFold;
 // Mode 2 re-interprets knob 1 as phaser FREQ, knob 2 as FDBK
 Parameter pPhaserFreq, pPhaserFb;
+// Expression pedal input (v3 board)
+Parameter pExpression;
 
 bool            bypass;
 
@@ -44,6 +49,14 @@ bool            pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
 int             switch1[2], switch2[2], switch3[2], dip[4];
 
 Led led1, led2;
+
+// External envelope control (expression pedal / MIDI CC19)
+float externalEnv    = 0.0f;  // Combined external envelope value (0-1), computed per block
+bool  midiEnvActive  = false; // True when MIDI CC19 is actively controlling envelope
+float midiEnvValue   = 0.0f;  // Last received MIDI CC19 value (0-1)
+
+// Threshold for expression pedal detection (above this = pedal connected and moved)
+static const float EXPRESSION_THRESHOLD = 0.05f;
 
 // DSP state
 Svf filt;
@@ -238,6 +251,20 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     vPhaserFreq = pPhaserFreq.Process();
     vPhaserFb   = pPhaserFb.Process();
 
+    // Read expression pedal and compute external envelope source
+    float vexpression = pExpression.Process();
+    if (vexpression > EXPRESSION_THRESHOLD) {
+        // Expression pedal is connected and moved — use it, override MIDI
+        externalEnv = vexpression;
+        midiEnvActive = false;
+    } else if (midiEnvActive) {
+        // MIDI CC19 is controlling envelope
+        externalEnv = midiEnvValue;
+    } else {
+        // No external source active
+        externalEnv = 0.0f;
+    }
+
     // Per-mode setup (constant across block)
     if (effectMode == 0) {
         filt.SetRes(vRes);
@@ -286,6 +313,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 float envScaled = envFollower * vSense * MODE0_SENSE;
                 if (envScaled > 1.0f) envScaled = 1.0f;
 
+                // External envelope override (expression pedal or MIDI CC19)
+                if (externalEnv > EXPRESSION_THRESHOLD)
+                    envScaled = externalEnv;
+
                 // Compute dynamic cutoff: floor + scaled envelope * (knob ceiling - floor)
                 float cutoff = FREQ_FLOOR + envScaled * (vFreq - FREQ_FLOOR);
                 if (cutoff < 20.0f)  cutoff = 20.0f;
@@ -322,6 +353,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 // Cube-root shaping: envelope lingers near peak longer, keeping fold
                 // engaged during note sustain before dropping off at the tail
                 envScaled = cbrtf(envScaled);
+
+                // External envelope override (expression pedal or MIDI CC19)
+                if (externalEnv > EXPRESSION_THRESHOLD)
+                    envScaled = externalEnv;
 
                 // Dynamic fold gain: at rest ~1 (no fold), at peak envelope = vFold
                 float dynamicGain = 1.0f + envScaled * (vFold - 1.0f);
@@ -360,6 +395,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 // Scale envelope by sensitivity, clamp to 0-1
                 float envScaled = envFollowerPH * vSense * MODE2_SENSE;
                 if (envScaled > 1.0f) envScaled = 1.0f;
+
+                // External envelope override (expression pedal or MIDI CC19)
+                if (externalEnv > EXPRESSION_THRESHOLD)
+                    envScaled = externalEnv;
 
                 // Dynamic base allpass frequency: floor + envelope * (knob ceiling - floor)
                 float baseFreq = PHASER_FREQ_FLOOR + envScaled * (vPhaserFreq - PHASER_FREQ_FLOOR);
@@ -414,7 +453,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     // Drive LED2 from the active envelope (brightness tracks playing dynamics)
     if (!bypass) {
         float envLed = 0.0f;
-        if (effectMode == 0)
+        if (externalEnv > EXPRESSION_THRESHOLD) {
+            // When external envelope is active, LED tracks the expression/MIDI value
+            envLed = externalEnv;
+        } else if (effectMode == 0)
             envLed = envFollowerLED * vSense * MODE0_SENSE;
         else if (effectMode == 1)
             envLed = envFollowerLED * vSense * MODE1_SENSE;
@@ -427,6 +469,29 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         led2.Set(0.0f);
     }
     led2.Update();
+}
+
+
+// MIDI message handler — CC19 controls envelope directly
+void HandleMidiMessage(MidiEvent m)
+{
+    switch(m.type)
+    {
+        case ControlChange:
+        {
+            ControlChangeEvent p = m.AsControlChange();
+            switch(p.control_number)
+            {
+                case 19:
+                    midiEnvActive = true;
+                    midiEnvValue = (float)p.value / 127.0f;
+                    break;
+                default: break;
+            }
+            break;
+        }
+        default: break;
+    }
 }
 
 
@@ -477,6 +542,9 @@ int main(void)
     // Knob 6: LEVEL (shared)
     pLevel.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR);
 
+    // Expression pedal input (v3 board, 0-1 linear)
+    pExpression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR);
+
     // Init filter
     filt.Init(srate);
     filt.SetFreq(1000.0f);
@@ -517,6 +585,10 @@ int main(void)
     led2.Init(hw.seed.GetPin(Funbox::LED_2), false);
     led2.Update();
 
+    // Init MIDI
+    hw.InitMidi();
+    hw.midi.StartReceive();
+
     hw.StartAdc();
 
     // Read initial hardware state so we start in the correct mode/knob positions
@@ -543,7 +615,12 @@ int main(void)
     hw.StartAudio(AudioCallback);
     while(1)
     {
-        System::Delay(10);
+        hw.midi.Listen();
+        // Handle MIDI Events
+        while(hw.midi.HasEvents())
+        {
+            HandleMidiMessage(hw.midi.PopEvent());
+        }
     }
 }
 
