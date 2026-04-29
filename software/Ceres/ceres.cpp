@@ -2,13 +2,13 @@
 //
 // A synthy distortion with a resonant filter controlled by input amplitude.
 // Mode 0 (left):   Waveshape - tanh saturation into an envelope-following resonant SVF.
-// Mode 1 (center): Wavefold  - envelope-controlled wavefolding with adjustable decay.
+// Mode 1 (center): Wavefold  - envelope-controlled wavefolding into an envelope-following lowpass.
 // Mode 2 (right):  Phaser    - envelope-controlled 8-pole phaser.
 //
 // Knob mappings:
-//   Knob 1:          Mode 0 (FREQ): Filter cutoff ceiling (100 - 8000 Hz, log)
-//                    Mode 1 (DECAY): Envelope decay/release time (20ms - 1000ms)
-//                    Mode 2 (FREQ): Phaser allpass frequency ceiling (200 - 4000 Hz, log)
+//   Knob 1 (FREQ):   Mode 0: Filter cutoff ceiling (100 - 8000 Hz, log)
+//                     Mode 1: Post-fold filter cutoff ceiling (100 - 8000 Hz, log)
+//                     Mode 2: Phaser allpass frequency ceiling (40 - 5000 Hz, log)
 //   Knob 2:          Mode 0 (RES): Resonance / feedback of the filter (0 - 1)
 //                    Mode 1 (FOLD): Max fold gain — envelope-driven fold depth (1x - 12x, exp)
 //                    Mode 2 (FDBK): Phaser feedback (0 - 0.75)
@@ -33,8 +33,8 @@ DaisyPetal hw;
 
 // Parameters — knobs 1-6
 Parameter pFreq, pRes, pSense, param4, param5, pLevel;
-// Mode 1 re-interprets knob 1 as DECAY, knob 2 as FOLD
-Parameter pDecay, pFold;
+// Mode 1 re-interprets knob 1 as post-fold FREQ, knob 2 as FOLD
+Parameter pFreqWF, pFold;
 // Mode 2 re-interprets knob 1 as phaser FREQ, knob 2 as FDBK
 Parameter pPhaserFreq, pPhaserFb;
 
@@ -47,6 +47,7 @@ Led led1, led2;
 
 // DSP state
 Svf filt;
+Svf filtWF;   // Post-wavefold envelope-following lowpass (mode 1)
 Wavefolder wfold;
 
 // Manual 4x biquad (second-order) allpass phaser — 8 poles total, deep notches
@@ -72,13 +73,18 @@ float envFollower = 0.0f;
 float envAttack  = 0.0f;
 float envRelease = 0.0f;
 
-// Envelope follower state (mode 1, with adjustable decay)
+// Envelope follower state (mode 1, with fixed long decay)
 float envFollowerWF = 0.0f;
 float envReleaseWF  = 0.0f;
 
 // Envelope follower state (mode 2 — phaser, adjustable decay)
 float envFollowerPH = 0.0f;
 float envReleasePH  = 0.0f;
+
+// LED envelope follower (fast release, shared across modes)
+float envFollowerLED = 0.0f;
+float envAttackLED   = 0.0f;
+float envReleaseLED  = 0.0f;
 
 // Sample rate (stored for per-block decay recalculation)
 float srate = 48000.0f;
@@ -88,7 +94,7 @@ float vFreq  = 200.0f;
 float vRes   = 0.5f;
 float vSense = 0.5f;
 float vFold  = 1.0f;
-float vDecay = 0.05f;
+float vFreqWF = 200.0f;
 float vLevel = 1.0f;
 
 // Phaser knob values
@@ -100,6 +106,12 @@ static const float FREQ_FLOOR = 80.0f;
 
 // Per-mode frequency floor for phaser (higher to avoid extreme low sweeps)
 static const float PHASER_FREQ_FLOOR = 200.0f;
+
+// Hardcoded wavefold envelope decay time (400ms — moderate decay with cbrt shaping)
+static const float WAVEFOLD_DECAY_S = 0.4f;
+
+// Fixed resonance for the wavefold post-filter (moderate color)
+static const float WAVEFOLD_FILT_RES = 0.45f;
 
 // Per-mode output gain normalization (tune these to match perceived loudness)
 static const float MODE0_GAIN = 0.65f;  // Waveshape: tame the ±0.7 hard-clipped saturation
@@ -159,7 +171,6 @@ void UpdateButtons()
     }
 
     led1.Update();
-    led2.Update();
 }
 
 
@@ -219,7 +230,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     // Read knobs
     vFreq  = pFreq.Process();
-    vDecay = pDecay.Process();
+    vFreqWF = pFreqWF.Process();
     vRes   = pRes.Process();
     vFold  = pFold.Process();
     vSense = pSense.Process();
@@ -232,8 +243,9 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         filt.SetRes(vRes);
         filt.SetDrive(1.0f);
     } else if (effectMode == 1) {
-        // Recompute wavefold envelope release coefficient from DECAY knob
-        envReleaseWF = 1.0f - expf(-1.0f / (vDecay * srate));
+        // Wavefold post-filter: fixed resonance, drive
+        filtWF.SetRes(WAVEFOLD_FILT_RES);
+        filtWF.SetDrive(1.0f);
     } else if (effectMode == 2) {
         // Phaser envelope release — fixed moderate decay (~80ms)
         envReleasePH = 1.0f - expf(-1.0f / (0.08f * srate));
@@ -249,6 +261,13 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         else
         {
             float inL = in[0][i];
+
+            // LED envelope follower (fast attack/release, independent of effect envelope)
+            float inAbs = fabsf(inL);
+            if (inAbs > envFollowerLED)
+                envFollowerLED += envAttackLED * (inAbs - envFollowerLED);
+            else
+                envFollowerLED += envReleaseLED * (inAbs - envFollowerLED);
 
             float wet = 0.0f;
 
@@ -289,7 +308,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             {
                 // --- Mode 1: Envelope-controlled Wavefold ---
 
-                // Envelope follower with adjustable decay/release
+                // Envelope follower with fixed long decay (500ms)
                 float inMono = fabsf(inL);
                 if (inMono > envFollowerWF)
                     envFollowerWF += envAttack * (inMono - envFollowerWF);
@@ -299,6 +318,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 // Scale envelope by sensitivity, clamp to 0-1
                 float envScaled = envFollowerWF * vSense * MODE1_SENSE;
                 if (envScaled > 1.0f) envScaled = 1.0f;
+
+                // Cube-root shaping: envelope lingers near peak longer, keeping fold
+                // engaged during note sustain before dropping off at the tail
+                envScaled = cbrtf(envScaled);
 
                 // Dynamic fold gain: at rest ~1 (no fold), at peak envelope = vFold
                 float dynamicGain = 1.0f + envScaled * (vFold - 1.0f);
@@ -311,8 +334,17 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
                 wfold.SetGain(dynamicGain * 0.5f);
                 folded = wfold.Process(folded);
 
-                // Soft-clip and scale to tame loud folded output
-                wet = tanhf(folded) * MODE1_GAIN;
+                // Soft-clip to tame loud folded output
+                folded = tanhf(folded);
+
+                // Envelope-driven post-fold lowpass filter (same pattern as mode 0)
+                float cutoffWF = FREQ_FLOOR + envScaled * (vFreqWF - FREQ_FLOOR);
+                if (cutoffWF < 20.0f)    cutoffWF = 20.0f;
+                if (cutoffWF > 16000.0f) cutoffWF = 16000.0f;
+                filtWF.SetFreq(cutoffWF);
+
+                filtWF.Process(folded);
+                wet = filtWF.Low() * MODE1_GAIN;
             }
             else if (effectMode == 2)
             {
@@ -378,6 +410,23 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             out[1][i] = outSample;
         }
     }
+
+    // Drive LED2 from the active envelope (brightness tracks playing dynamics)
+    if (!bypass) {
+        float envLed = 0.0f;
+        if (effectMode == 0)
+            envLed = envFollowerLED * vSense * MODE0_SENSE;
+        else if (effectMode == 1)
+            envLed = envFollowerLED * vSense * MODE1_SENSE;
+        else if (effectMode == 2)
+            envLed = envFollowerPH * vSense * MODE2_SENSE * 2.0f;
+        if (envLed > 1.0f) envLed = 1.0f;
+        if (envLed < 0.01f) envLed = 0.0f;  // Gate: snap off to avoid dim tail
+        led2.Set(envLed);
+    } else {
+        led2.Set(0.0f);
+    }
+    led2.Update();
 }
 
 
@@ -411,9 +460,9 @@ int main(void)
     pdip[2] = false;
     pdip[3] = false;
 
-    // Knob 1: FREQ (mode 0) / DECAY (mode 1) — dual-mapped
+    // Knob 1: FREQ (mode 0) / FREQ (mode 1) / FREQ (mode 2) — all frequency ceilings
     pFreq.Init(hw.knob[Funbox::KNOB_1], 100.0f, 8000.0f, Parameter::LOGARITHMIC);
-    pDecay.Init(hw.knob[Funbox::KNOB_1], 0.02f, 1.0f, Parameter::LOGARITHMIC);  // 20ms - 1000ms
+    pFreqWF.Init(hw.knob[Funbox::KNOB_1], 100.0f, 8000.0f, Parameter::LOGARITHMIC);
     pPhaserFreq.Init(hw.knob[Funbox::KNOB_1], 40.0f, 5000.0f, Parameter::LOGARITHMIC);
     // Knob 2: RES (mode 0) / FOLD (mode 1) — dual-mapped
     pRes.Init(hw.knob[Funbox::KNOB_2], 0.0f, 0.99f, Parameter::LINEAR);
@@ -433,6 +482,11 @@ int main(void)
     filt.SetFreq(1000.0f);
     filt.SetRes(0.5f);
 
+    // Init wavefold post-filter
+    filtWF.Init(srate);
+    filtWF.SetFreq(1000.0f);
+    filtWF.SetRes(WAVEFOLD_FILT_RES);
+
     // Init wavefolder
     wfold.Init();
 
@@ -446,10 +500,14 @@ int main(void)
     // Envelope follower coefficients (mode 0 uses fixed attack/release)
     envAttack  = 1.0f - expf(-1.0f / (0.005f * srate));
     envRelease = 1.0f - expf(-1.0f / (0.050f * srate));
-    // Mode 1 release is set per-block from DECAY knob; init to same as mode 0
-    envReleaseWF = envRelease;
+    // Mode 1 release — hardcoded long decay (500ms)
+    envReleaseWF = 1.0f - expf(-1.0f / (WAVEFOLD_DECAY_S * srate));
     // Mode 2 phaser release — init to moderate 80ms decay
     envReleasePH = 1.0f - expf(-1.0f / (0.08f * srate));
+
+    // LED envelope follower — fast attack/release so LED drops quickly on mute
+    envAttackLED  = 1.0f - expf(-1.0f / (0.005f * srate));
+    envReleaseLED = 1.0f - expf(-1.0f / (0.08f * srate));
 
     // Init LEDs and start in bypass
     led1.Init(hw.seed.GetPin(Funbox::LED_1), false);
@@ -474,7 +532,7 @@ int main(void)
     updateSwitch3();
 
     vFreq  = pFreq.Process();
-    vDecay = pDecay.Process();
+    vFreqWF = pFreqWF.Process();
     vRes   = pRes.Process();
     vFold  = pFold.Process();
     vSense = pSense.Process();
