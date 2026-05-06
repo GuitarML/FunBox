@@ -7,6 +7,7 @@ Funbox is a digital stereo guitar effects platform targeting the **Daisy Seed** 
 ## Architecture
 
 - **`software/<Planet>/`** — Each pedal is a self-contained firmware with its own `Makefile` and single main `.cpp` file (e.g., `mars.cpp`, `venus.cpp`). Some pedals include local DSP helpers (e.g., `CloudSeed/`, `ImpulseResponse/`, custom FFT headers).
+- **`software/DwarfPlanets/<Name>/`** — Community/user-contributed effects (Ceres, Makemake, Orcus, Quaoar, Sedna). Same structure as planets but nested one level deeper; Makefiles use `../../../` for library paths.
 - **`software/Template/template.cpp`** — **Start here** when creating a new effect. Shows the canonical structure: global state → `AudioCallback` → `main()` init sequence.
 - **`include/funbox.h`** — Hardware abstraction mapping knobs/switches/LEDs to Daisy Seed pins. Always use `Funbox::KNOB_1`, `Funbox::SWITCH_1_LEFT`, etc. — never raw pin numbers.
 - **`include/expressionHandler.h`** — Expression pedal support for v3 boards. Header-only class.
@@ -50,9 +51,10 @@ cd software/<Planet> && make
 
 ## Adding a New Effect
 
-1. Copy `software/Template/` to `software/NewName/`
+1. Copy `software/Template/` to `software/NewName/` (or `software/DwarfPlanets/NewName/` for dwarf planets)
 2. Rename `template.cpp` → `newname.cpp`, update `TARGET` and `CPP_SOURCES` in `Makefile`
-3. Fill in `updateSwitch*()` functions, audio processing in the `AudioCallback` loop, and parameter ranges in `main()`
+3. For dwarf planets, update library paths in `Makefile` to use `../../../` instead of `../../` (see existing dwarf planet Makefiles)
+4. Fill in `updateSwitch*()` functions, audio processing in the `AudioCallback` loop, and parameter ranges in `main()`
 4. Update `README.md` with the controls table (follow the template format)
 5. If using extra libs (RTNeural, CloudSeed), add to `C_INCLUDES` and `CPP_SOURCES`
 
