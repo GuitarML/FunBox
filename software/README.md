@@ -12,6 +12,10 @@ The Planet Series are what I would consider to be ready-to-go guitar pedals.
  - Neptune : A stereo reverb/delay capable of ethereal sounds.
  - Pluto   : A wacky Dual/Stereo Looper with speed/direction controls. 
 
+
+ Other:
+ - Balnea : A digital delay and pitch shifter based on the CBA Thermae.
+
 "Experiments" includes tests that might be interesting, but are not necessarily a polished product.
 
 The files in the "Template" directory serve as a starting place for developing your own effects. 
