@@ -900,6 +900,7 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         }
 
     } else {
+        led2.Set(0.0f); // Turn off tap led when bypassed
         for (size_t i = 0; i < size; i++)
         {
             // Stereo or MISO 
