@@ -875,7 +875,7 @@
     (property "Reference" "U1" (at 176.53 102.87 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "TL074" (at 176.53 105.41 0)
+    (property "Value" "MCP6024" (at 176.53 105.41 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Package_DIP:DIP-14_W7.62mm" (at 176.53 101.6 0)
