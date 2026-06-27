@@ -1,4 +1,4 @@
-# Earth (Planet Series)
+# Balnea
 
 Balnea is a digital delay and pitch shifter inspired by the CBA Thermae pedal.
 
